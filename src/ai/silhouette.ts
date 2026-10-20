@@ -186,3 +186,31 @@ function eyeOf(alpha: Uint8ClampedArray, w: number, h: number): { x: number; y: 
   for (let y = 0; y < h; y++) for (let x = Math.round(w / 2); x < w; x++) if (solidAt(x, y)) return { x, y: Math.min(h - 1, y + 1) };
   return { x: Math.round(w / 2), y: Math.round(h / 2) };
 }
+
+/**
+ * A weapon held in the hand: turned so its long side stands up and its heavier end (a blade, a head, a pan) is at the
+ * top, where our own weapons have theirs; the lighter end is the grip, at the bottom.
+ */
+export function upright(shape: Silhouette): Silhouette {
+  let { w, h, alpha } = shape;
+  if (w > h) {
+    // A quarter turn.
+    const turned = new Uint8ClampedArray(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) turned[x * h + (h - 1 - y)] = alpha[y * w + x];
+    alpha = turned;
+    [w, h] = [h, w];
+  }
+  let top = 0;
+  let bottom = 0;
+  for (let i = 0; i < alpha.length; i++) {
+    if (alpha[i] < 128) continue;
+    if (((i / w) | 0) < h / 2) top++;
+    else bottom++;
+  }
+  if (bottom > top) {
+    const flipped = new Uint8ClampedArray(w * h);
+    for (let y = 0; y < h; y++) flipped.set(alpha.subarray(y * w, y * w + w), (h - 1 - y) * w);
+    alpha = flipped;
+  }
+  return { w, h, alpha, eye: { x: w / 2, y: 0 } };
+}

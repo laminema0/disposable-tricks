@@ -3,7 +3,7 @@
 
 import type Phaser from 'phaser';
 import { lookKey, prepareLooks, readyLook, type Look } from '../ai/look';
-import type { Body, Creature } from '../settings/schema';
+import type { Body, Creature, Weapon } from '../settings/schema';
 import { beastFor, type Beast } from './beasts';
 
 /** How tall it stands at size 1, by its body; never wider than this, so a long creature stays on screen. */
@@ -68,5 +68,43 @@ export function prepareCreatureLooks(creatures: readonly Creature[]): void {
 
 /** True when this look is the one for this creature. */
 export function isLookFor(look: Look, creature: Creature | undefined): boolean {
-  return creature !== undefined && lookKey(creature.name) === look.name;
+  return creature !== undefined && look.kind === 'monster' && lookKey(creature.name) === look.name;
+}
+
+// ---- weapons (20 Oct) ----
+
+/** One of our own drawn weapons: its name says the shape it has ("Pen" with the pen look). The launcher is always ours. */
+export function isOurWeapon(weapon: Weapon): boolean {
+  return weapon.kind === 'none' || weapon.look === 'launcher' || new RegExp(weapon.look, 'i').test(weapon.name);
+}
+
+/** Ask for the look of a weapon we have not drawn. */
+export function prepareWeaponLook(weapon: Weapon): void {
+  if (!isOurWeapon(weapon)) prepareLooks([weapon.name], 'weapon');
+}
+
+/**
+ * The texture for a weapon's generated look, when it is ready: drawn upright in a square like a composed weapon's
+ * (recipeDraw.ts), standing on the bottom edge where the hand holds it. Undefined while it is not ready.
+ */
+export function weaponLookTexture(scene: Phaser.Scene, weapon: Weapon): string | undefined {
+  if (isOurWeapon(weapon)) return undefined;
+  const look = readyLook(weapon.name, 'weapon');
+  if (!look) return undefined;
+  const key = `gen-weapon-${look.name.replace(/[^a-z0-9]+/g, '-')}`;
+  if (scene.textures.exists(key)) return key;
+  const texture = scene.textures.createCanvas(key, 240, 260);
+  if (!texture) return undefined;
+  const ctx = texture.getContext();
+  const margin = 14;
+  const k = Math.min((240 - margin * 2) / look.w, (260 - margin * 2) / look.h);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(look.canvas, 120 - (look.w * k) / 2, 260 - margin - look.h * k, look.w * k, look.h * k);
+  texture.refresh();
+  return key;
+}
+
+/** True when this look is the one for this weapon. */
+export function isWeaponLookFor(look: Look, weapon: Weapon): boolean {
+  return look.kind === 'weapon' && lookKey(weapon.name) === look.name;
 }

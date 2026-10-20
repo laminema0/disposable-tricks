@@ -14,7 +14,7 @@ import { repairSettings } from '../settings/validate';
 import { button, el } from './dom';
 import { ACTION_ICONS, ANY_WEAPON, iconButton, MONSTER_ICONS, WEAPON_ICONS } from './icons';
 import { ENEMIES, type Enemy } from '../settings/schema';
-import { prepareCreatureLooks } from '../game/generated';
+import { prepareCreatureLooks, prepareWeaponLook } from '../game/generated';
 
 const MONSTER_NAMES: Record<Enemy, string> = { crawler: 'Charger', thorn: 'Spitter', flyer: 'Diver', stalker: 'Stalker', watcher: 'Watcher' };
 
@@ -42,6 +42,8 @@ interface Handlers {
 }
 
 const MAKING = 'Making your game…';
+/** The longest the AI may take to name a game before play starts with the name it has. */
+const NAME_WAIT_MS = 2500;
 const READING = 'Reading that…';
 const REFUSED = 'Can’t make that. Try other words.';
 const UNCLEAR = 'Didn’t catch that. Try other words.';
@@ -124,7 +126,9 @@ export function createPickScreen(handlers: Handlers, maker: Maker): PickScreen {
     busy = true;
     status = MAKING;
     render();
-    draft = await maker.name(draft);
+    // The name is no longer on the title card (only in saved games and links): it may not hold up play.
+    const named = draft;
+    draft = await Promise.race([maker.name(draft), new Promise<Settings>((resolve) => setTimeout(() => resolve(named), NAME_WAIT_MS))]);
     busy = false;
     status = '';
     handlers.onPalette(draft);
@@ -183,6 +187,8 @@ export function createPickScreen(handlers: Handlers, maker: Maker): PickScreen {
       showScene();
       return;
     }
+    // A weapon we have not drawn: its look is asked for now, so it is ready by Play.
+    prepareWeaponLook(result.settings.weapon);
     // What could not be built is said in one plain line; the game goes on with the rest.
     answered(result.settings, result.missed ? `No ${result.missed} here yet.` : result.heard);
   }

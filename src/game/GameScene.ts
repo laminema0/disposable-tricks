@@ -5,7 +5,7 @@ import Phaser from 'phaser';
 import { DANGER, SUSPECT } from './signals';
 import { Talk } from './talk';
 import { onLook } from '../ai/look';
-import { isLookFor, prepareCreatureLooks } from './generated';
+import { isLookFor, isWeaponLookFor, prepareCreatureLooks, prepareWeaponLook, weaponLookTexture } from './generated';
 import { landIndex, landOf } from './lands';
 import { bossAlone, bossDeath, bossIntro, soldierCount, taunt } from './dialogue';
 import { Controls, type Intent } from '../core/controls';
@@ -42,7 +42,7 @@ import { BACK_GATE, chooseGates, worldLayout } from './world';
 import { afterGate, count, detourIndex, enterStreet, gainXp, has, leaveStreet, newRun, planChapter, SKILLS, XP, xpFor, type RunState, type SkillKey } from './run';
 
 /** How often the monsters talk (Amin, 19 Oct: not all of them, and he does not answer all). */
-const TALKING = { taunt: 0.4, answer: 0.5, line: 1.3 };
+const TALKING = { taunt: 0.5, answer: 0.4, line: 1.3 };
 
 const DEPTH = { sky: -1, moon: 0, hills: 1, glow: 2, heroBehind: 2.5, props: 3, monster: 3.6, hero: 4, ground: 5, front: 6, pool: 7, hud: 100 };
 const WATER_COLOUR = 0xcfdcff;
@@ -213,7 +213,6 @@ export class GameScene extends Phaser.Scene {
   private beforeFight?: { recharge: number; max: number };
   /** Kinds of monster that have already taunted him on this stretch, and when the last remark was. */
   private taunted = new Set<string>();
-  private lastRemark = -99;
   /** The calm ambient music, one for the whole session (core/music.ts). */
   private music?: Music;
   /** Monsters that already had him last frame, so each speaks once as it finds him. */
@@ -293,6 +292,11 @@ export class GameScene extends Phaser.Scene {
     // A generated look that arrives during play replaces the stand-in shape at once (ai/look.ts).
     prepareCreatureLooks(settings.creatures);
     const stopLooks = onLook((look) => {
+      if (isWeaponLookFor(look, settings.weapon)) {
+        const key = weaponLookTexture(this, settings.weapon);
+        if (key) this.hero.useWeaponTexture(key);
+        return;
+      }
       for (const monster of this.world.monsters) {
         // Its stand-in, whether built from parts or from the AI's own rough shapes, gives way to the real look.
         if (!monster.alive || !isLookFor(look, monster.creature)) continue;
@@ -316,6 +320,10 @@ export class GameScene extends Phaser.Scene {
     if (plan) this.setUpQuest();
 
     this.hero = new Hero(this, startX, DEPTH.hero, DEPTH.heroBehind, this.look.hero);
+    // His weapon's generated look, now if it is ready (the moment it arrives otherwise: see onLook below).
+    prepareWeaponLook(settings.weapon);
+    const weaponKey = weaponLookTexture(this, settings.weapon);
+    if (weaponKey) this.hero.useWeaponTexture(weaponKey);
     // Weapon charges, with what his skills add.
     this.hero.maxCharges = WEAPON_USE.charges + count(this.run, 'charges');
     this.hero.charges = this.hero.maxCharges;
@@ -741,9 +749,10 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < shots; i++) {
       // Several shots at once (a shotgun) fan out evenly around the aim.
       const a = shots === 1 ? angle : angle + (weapon.spread ?? 0.25) * (i / (shots - 1) - 0.5);
+      const own = thrown && hero.weaponShape.key.startsWith('gen-weapon-') ? hero.weaponShape.key : undefined;
       const image = this.add
-        .image(0, 0, thrown ? 'wpn-stone' : rocket ? 'rocket' : gun ? 'mon-shot' : 'arrow')
-        .setScale(rocket ? 1 : gun ? 0.4 : 0.5)
+        .image(0, 0, own ?? (thrown ? 'wpn-stone' : rocket ? 'rocket' : gun ? 'mon-shot' : 'arrow'))
+        .setScale(own ? 0.12 : rocket ? 1 : gun ? 0.4 : 0.5)
         .setTint(mixColour(this.look.stage, 0xe4e8f6, 0.85))
         .setDepth(DEPTH.hero);
       this.darts.push({
@@ -1884,7 +1893,7 @@ export class GameScene extends Phaser.Scene {
       // after it is gone). Only on screen, and as a short held moment: the world waits while it speaks and he answers.
       const noticing = m.notice > 0.05 || has;
       const onScreen = m.x > cam.scrollX + 30 && m.x < cam.scrollX + cam.width - 30;
-      if (noticing && onScreen && !m.boss && !this.soldiers.has(m) && !this.taunted.has(m.kind) && this.runTime - this.lastRemark > 9 && !this.ending && !this.talk.blocking) {
+      if (noticing && onScreen && !m.boss && !this.soldiers.has(m) && this.taunted.size === 0 && this.runTime > 6 && !this.ending && !this.talk.blocking) {
         this.taunted.add(m.kind);
         if (Math.random() < TALKING.taunt) this.tauntMoment(m);
       }
@@ -1899,7 +1908,6 @@ export class GameScene extends Phaser.Scene {
 
   /** A monster's taunt, and maybe his answer, while the world holds still for a moment. */
   private tauntMoment(m: Monster): void {
-    this.lastRemark = this.runTime;
     const [them, him] = taunt(m.kind, this.run.chapter);
     const answers = Math.random() < TALKING.answer;
     const alive = () => m.alive;

@@ -85,11 +85,8 @@ export function bossIntro(chapter: number): Line[] {
   const b = (text: string): Line => ({ who: 'boss', name: boss.name, text });
   const h = (text: string): Line => ({ who: 'hero', name: HERO_NAME, text });
   return [
-    b('Well, well. A son of the rose.'),
-    b('You came all this way to give the Earth back its water?'),
-    h('Yes. Every flower you dried.'),
-    b('You? Against me?'),
-    h('I can. And I will end you.'),
+    b('A son of the rose. You came for the water?'),
+    h('Every drop you took. I will end you.'),
     b('Brave little bud. First, meet my soldiers.'),
   ];
 }
@@ -106,9 +103,8 @@ export function bossAlone(chapter: number): Line[] {
 export function bossDeath(chapter: number): Line[] {
   const boss = BOSSES[(Math.max(1, chapter) - 1) % BOSSES.length];
   return [
-    { who: 'boss', name: boss.name, text: "Don't smile yet, little rose…" },
-    { who: 'boss', name: boss.name, text: `This was one world. ${capital(boss.brothers)} hold the rest.` },
-    { who: 'hero', name: HERO_NAME, text: 'Then I will find them. One by one.' },
+    { who: 'boss', name: boss.name, text: `Don't smile yet. ${capital(boss.brothers)} hold the rest.` },
+    { who: 'hero', name: HERO_NAME, text: 'Then I will find them.' },
   ];
 }
 

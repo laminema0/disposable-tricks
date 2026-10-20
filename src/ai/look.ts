@@ -2,17 +2,21 @@
 // Asked for as soon as a player names such a monster, so it is usually ready by the time play starts; kept on the
 // device, so it is instant the next time. The game listens and swaps its stand-in for the real shape on arrival.
 
-import { silhouetteFrom, type Silhouette } from './silhouette';
+import { silhouetteFrom, upright, type Silhouette } from './silhouette';
+
+/** A monster's look, or the look of the weapon in his hand (20 Oct). */
+export type LookKind = 'monster' | 'weapon';
 
 export interface Look extends Silhouette {
   /** The name it was made for, as the player wrote it (in lower case). */
   name: string;
+  kind: LookKind;
   /** The cut-out as a white shape, ready to become a texture. */
   canvas: HTMLCanvasElement;
 }
 
-const STORE = 'dt-look:v1:';
-const INDEX = 'dt-looks:v1';
+const STORE = 'dt-look:v2:';
+const INDEX = 'dt-looks:v2';
 /** Looks kept on the device; the oldest goes when there are more. */
 const KEEP = 40;
 /** Pixels the picture is read at: enough for a crisp shape, quick to cut out. */
@@ -28,8 +32,8 @@ export function lookKey(name: string): string {
 }
 
 /** A look that is ready now, if there is one. */
-export function readyLook(name: string | undefined): Look | undefined {
-  return name ? looks.get(lookKey(name)) : undefined;
+export function readyLook(name: string | undefined, kind: LookKind = 'monster'): Look | undefined {
+  return name ? looks.get(`${kind}:${lookKey(name)}`) : undefined;
 }
 
 /** Called whenever a look becomes ready. Returns a function that stops listening. */
@@ -43,23 +47,24 @@ function lookUrl(): string {
   return make ? make.replace(/make\/?$/, 'look') : '';
 }
 
-/** Ask for the look of each of these monsters that is not ready yet. Nothing is waited for. */
-export function prepareLooks(names: readonly string[]): void {
-  for (const name of names) void requestLook(name);
+/** Ask for the look of each of these that is not ready yet. Nothing is waited for. */
+export function prepareLooks(names: readonly string[], kind: LookKind = 'monster'): void {
+  for (const name of names) void requestLook(name, kind);
 }
 
 /** The look for this name: from memory, from the device, or made now. Undefined when it cannot be made. */
-export function requestLook(name: string): Promise<Look | undefined> {
-  const key = lookKey(name);
-  if (key.length < 2) return Promise.resolve(undefined);
+export function requestLook(name: string, kind: LookKind = 'monster'): Promise<Look | undefined> {
+  const name_ = lookKey(name);
+  if (name_.length < 2) return Promise.resolve(undefined);
+  const key = `${kind}:${name_}`;
   const ready = looks.get(key);
   if (ready) return Promise.resolve(ready);
   let pending = asked.get(key);
   if (!pending) {
     pending = (async () => {
-      const image = readStored(key) ?? (await fetchImage(key));
+      const image = readStored(key) ?? (await fetchImage(name_, kind));
       if (!image) return undefined;
-      const look = await cutOut(key, image);
+      const look = await cutOut(name_, kind, image);
       if (!look) return undefined;
       looks.set(key, look);
       store(key, look);
@@ -75,7 +80,7 @@ export function requestLook(name: string): Promise<Look | undefined> {
   return pending;
 }
 
-async function fetchImage(key: string): Promise<string | undefined> {
+async function fetchImage(key: string, kind: LookKind): Promise<string | undefined> {
   const url = lookUrl();
   if (!url) return undefined;
   const controller = new AbortController();
@@ -84,7 +89,7 @@ async function fetchImage(key: string): Promise<string | undefined> {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: key }),
+      body: JSON.stringify({ name: key, kind }),
       signal: controller.signal,
     });
     const reply = (await res.json().catch(() => undefined)) as { ok?: boolean; image?: unknown } | undefined;
@@ -97,7 +102,7 @@ async function fetchImage(key: string): Promise<string | undefined> {
 }
 
 /** Read the picture, cut the creature out of it, and draw it as a white shape. */
-async function cutOut(key: string, src: string): Promise<Look | undefined> {
+async function cutOut(key: string, kind: LookKind, src: string): Promise<Look | undefined> {
   const image = new Image();
   // Waiting for 'load' (not decode(), which a background tab may put off), and never for ever.
   const loaded = await new Promise<boolean>((resolve) => {
@@ -125,8 +130,9 @@ async function cutOut(key: string, src: string): Promise<Look | undefined> {
   const dw = image.naturalWidth * fit;
   const dh = image.naturalHeight * fit;
   ctx.drawImage(image, (READ - dw) / 2, (READ - dh) / 2, dw, dh);
-  const shape = silhouetteFrom(ctx.getImageData(0, 0, READ, READ).data, READ, READ);
-  if (!shape) return undefined;
+  const found = silhouetteFrom(ctx.getImageData(0, 0, READ, READ).data, READ, READ);
+  if (!found) return undefined;
+  const shape = kind === 'weapon' ? upright(found) : found;
   const canvas = document.createElement('canvas');
   canvas.width = shape.w;
   canvas.height = shape.h;
@@ -140,7 +146,7 @@ async function cutOut(key: string, src: string): Promise<Look | undefined> {
     pixels.data[i * 4 + 3] = shape.alpha[i];
   }
   out.putImageData(pixels, 0, 0);
-  return { ...shape, name: key, canvas };
+  return { ...shape, name: key, kind, canvas };
 }
 
 // ---- kept on the device: the cut-out as a small PNG ----

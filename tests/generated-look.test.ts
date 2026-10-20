@@ -109,3 +109,32 @@ describe('a name finds our drawing by the thing it names', async () => {
     expect(beastFor('Unicorn')).toBeUndefined();
   });
 });
+
+describe('weapons get generated looks too (20 Oct)', async () => {
+  const { upright } = await import('../src/ai/silhouette');
+  const { lookPrompts } = await import('../server/src/look');
+  const { isOurWeapon } = await import('../src/game/generated');
+  it('a weapon stands upright with its heavier end at the top', () => {
+    // A lying shape: a heavy head on the right, a thin handle on the left.
+    const w = 40;
+    const h = 10;
+    const alpha = new Uint8ClampedArray(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (x >= 28 || (y >= 4 && y < 6)) alpha[y * w + x] = 255;
+    const up = upright({ w, h, alpha, eye: { x: 0, y: 0 } });
+    expect(up.h).toBe(40);
+    expect(up.w).toBe(10);
+    const topRows = up.alpha.slice(0, 10 * 10).filter((a) => a > 0).length;
+    const bottomRows = up.alpha.slice(30 * 10).filter((a) => a > 0).length;
+    expect(topRows).toBeGreaterThan(bottomRows);
+  });
+  it('asks for a weapon in gentler words when the first are refused', () => {
+    const prompts = lookPrompts('banana', 'weapon');
+    expect(prompts.length).toBeGreaterThanOrEqual(2);
+    expect(prompts[1]).toMatch(/road sign symbol/);
+    expect(lookPrompts('banana')[1]).toMatch(/monster with legs and eyes/);
+  });
+  it('only weapons we have not drawn are generated', () => {
+    expect(isOurWeapon({ name: 'Sword', kind: 'melee', look: 'sword', reach: 70, speed: 1, power: 1 })).toBe(true);
+    expect(isOurWeapon({ name: 'Banana', kind: 'thrown', look: 'sling', reach: 200, speed: 1, power: 1 })).toBe(false);
+  });
+});

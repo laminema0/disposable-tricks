@@ -2,7 +2,7 @@
 // A share link in the address skips the pick screen and plays that exact game.
 
 import type Phaser from 'phaser';
-import { prepareCreatureLooks } from '../game/generated';
+import { prepareCreatureLooks, prepareWeaponLook } from '../game/generated';
 import { FINISHED, GameScene, type Finish, type GameData, type Resume } from '../game/GameScene';
 import { defaultMaker } from '../ai/maker';
 import type { Settings } from '../settings/schema';
@@ -196,6 +196,7 @@ export function startApp(game: Phaser.Game): void {
     trickJs = '';
     current = settings;
     prepareCreatureLooks(settings.creatures);
+    prepareWeaponLook(settings.weapon);
     setPalette(root, settings.palette);
     // The address always holds the share link of the game on screen.
     window.history.replaceState(null, '', `#${encodeSettings(settings)}`);

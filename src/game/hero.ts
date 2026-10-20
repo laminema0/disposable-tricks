@@ -202,7 +202,7 @@ export class Hero {
   private readonly flowerGlow: Phaser.GameObjects.Image;
   private readonly dot: Phaser.GameObjects.Image;
   private readonly slash: Phaser.GameObjects.Image;
-  private readonly swordScale: number;
+  private swordScale: number;
   /** A gun of some kind: held forward, ready to fire. */
   private readonly firearm: boolean;
   /** A soft outline of light around all of him: strong near a lamp, a faint edge in the dark. */
@@ -303,6 +303,12 @@ export class Hero {
   /** True for the short time his blade can hit something. */
   get strikeActive(): boolean {
     return this.look.weapon.kind === 'melee' && this.strikeT < STRIKE.activeTime;
+  }
+
+  /** A generated look for his weapon (game/generated.ts): held at its grip, at the size of a composed weapon. */
+  useWeaponTexture(key: string): void {
+    this.sword.setTexture(key).setOrigin(0.5, 0.96);
+    this.swordScale = 0.46;
   }
 
   /** His blade met something: the lunge ends there, so he does not run through it. */
