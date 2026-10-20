@@ -17,7 +17,13 @@ export interface Silhouette {
 const DARK = { full: 0.32, none: 0.62 };
 
 /** Read a picture's pixels (RGBA, row by row). Undefined when it does not hold one clear creature. */
-export function silhouetteFrom(rgba: Uint8ClampedArray, width: number, height: number): Silhouette | undefined {
+export function silhouetteFrom(
+  rgba: Uint8ClampedArray,
+  width: number,
+  height: number,
+  /** The smallest share of the picture it may cover: a thin wand or whip covers far less than a creature. */
+  minArea = 0.02,
+): Silhouette | undefined {
   const n = width * height;
   const soft = new Float32Array(n);
   const solid = new Uint8Array(n);
@@ -63,7 +69,7 @@ export function silhouetteFrom(rgba: Uint8ClampedArray, width: number, height: n
       area++;
     }
   }
-  if (area < n * 0.02) return undefined;
+  if (area < n * minArea) return undefined;
 
   // Small holes inside it (a painted eye, a gap of a few pixels) are filled; open spaces, such as between the legs, stay open.
   const outside = new Uint8Array(n);
@@ -125,7 +131,8 @@ export function silhouetteFrom(rgba: Uint8ClampedArray, width: number, height: n
   const bw = x1 - x0 + 1;
   const bh = y1 - y0 + 1;
   const edges = Number(x0 === 0) + Number(y0 === 0) + Number(x1 === width - 1) + Number(y1 === height - 1);
-  if (edges >= 3 || area > bw * bh * 0.92) return undefined;
+  // (0.97, not less: a toaster or a crate is nearly a box and is still a thing.)
+  if (edges >= 3 || area > bw * bh * 0.97) return undefined;
 
   // Which way it faces: its head is usually the high part, so the top of it leans towards its front.
   let all = 0;

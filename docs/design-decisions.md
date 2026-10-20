@@ -260,3 +260,13 @@ Fixed on the way:
 - **Taunts are a short held moment:** the first of each kind of monster on a stretch may taunt him as it first notices him, only while it is on screen. The world waits about a second for its line (and a second more if he answers), then goes on. A bubble goes as soon as its monster is gone; the dying line is dropped. The boss keeps its full conversation.
 - **The planting is one bunch:** all the flowers grow together from one spot before the gate, not in a row.
 - **Ramps:** mounds rise from the road on open ground (26–48 px high, gentle slopes up and down), never on a pit, water, a hiding place or under a lamp. The hero and walking monsters follow them; darts, the thrown weapon, dropped water and dust land on them. Stones, living flowers and gates stay on flat road.
+
+## Anything a player writes, 20 October 2026
+
+Amin: "It's not about just banana, it's about writing whatever they want and getting that."
+
+Measured on 40 things we have not drawn, through the real pipeline (generate, retry in gentler words, cut out):
+- **Monsters: 20 of 20.** Unicorn, giant snail, jellyfish, cactus monster, teddy bear, toaster with legs, ghost pirate, lava golem, mushroom man, shark with legs, owl, killer tomato, robot spider, snowman, scarecrow, pumpkin head, dinosaur, giant hand, walking tree, banana.
+- **Weapons: 20 of 20,** after a fix. Frying pan, umbrella, banana, guitar, baseball bat, chainsaw, trident, boomerang, magic wand, laser sword, fish, broom, shovel, water pistol, crossbow, whip, katana, hockey stick, rubber duck, chair. The first run got 15 of 20: long, thin weapons were thrown away by the cut-out as too small, and a boxy toaster as "just a box".
+- **Speed:** 1.8 s on average for a new look; instant once kept.
+- **Rougher results:** the guitar reads more like a blade and the crossbow is odd. They are usable, but not as clear as the rest.

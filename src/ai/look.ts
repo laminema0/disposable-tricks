@@ -130,7 +130,7 @@ async function cutOut(key: string, kind: LookKind, src: string): Promise<Look | 
   const dw = image.naturalWidth * fit;
   const dh = image.naturalHeight * fit;
   ctx.drawImage(image, (READ - dw) / 2, (READ - dh) / 2, dw, dh);
-  const found = silhouetteFrom(ctx.getImageData(0, 0, READ, READ).data, READ, READ);
+  const found = silhouetteFrom(ctx.getImageData(0, 0, READ, READ).data, READ, READ, kind === 'weapon' ? 0.003 : 0.02);
   if (!found) return undefined;
   const shape = kind === 'weapon' ? upright(found) : found;
   const canvas = document.createElement('canvas');
