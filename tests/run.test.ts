@@ -35,7 +35,7 @@ describe('the endless run', () => {
   it('makes the monsters grow as he gains skills', () => {
     const plain = planChapter(base, newRun(5));
     const grown = planChapter(base, { ...newRun(5), upgrades: ['reach', 'quick', 'power', 'charges', 'reload', 'quiet'] });
-    expect(grown.toughness).toBe(2);
+    expect(grown.toughness).toBe(1);
     expect(grown.pace).toBeGreaterThan(plain.pace);
     expect(grown.monsters).toBeGreaterThan(plain.monsters);
   });

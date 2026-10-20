@@ -4,7 +4,8 @@
 import type { Creature, Enemy } from '../settings/schema';
 import type { Design } from './creatures';
 import { BOSS, GROUND_Y, WATCHER } from './config';
-import { BOSS_POINTS, type Figure } from './kit';
+import type { Figure } from './kit';
+import { bossPhase, type BossProfile } from './bosses';
 import { hitsAfterStrike, monsterSees, stepGaze, tickGap } from './rules';
 import { inSight, SIGHTS, type SightShape, type Target } from './sight';
 
@@ -237,6 +238,9 @@ export interface Monster {
 }
 
 export interface BossState {
+  /** Its own ways (bosses.ts), and where its mouth is. */
+  profile: BossProfile;
+  mouth: { ahead: number; up: number };
   /** 0, 1 or 2: it gets harder as it is hurt. */
   phase: number;
   /** True while its eye is open. */
@@ -250,6 +254,11 @@ export interface BossState {
   /** Seconds it stays dazed: eye shut, root bare. */
   daze: number;
   spitIn: number;
+  /** Seconds until its next rain, stamp, gust and healing. */
+  rainIn: number;
+  stompIn: number;
+  gustIn: number;
+  healIn: number;
   /** While its soldiers fight him it waits, eye shut (the boss's dialogue, 19 Oct). */
   waiting?: boolean;
 }
@@ -261,6 +270,10 @@ export interface Shot {
   vy: number;
   age: number;
   dead: boolean;
+  /** Seconds it lasts, when not a thorn's usual. */
+  life?: number;
+  /** A wave that runs along the ground (a boss's stamp): it follows the ground instead of hitting it. */
+  ground?: true;
 }
 
 /** What the monsters need to know about the hero. */
@@ -296,6 +309,14 @@ export interface StepResult {
   sounds: MonsterSound[];
   /** He bumped into a resting monster: no harm, but it pushes him this way (-1 or 1). */
   push?: -1 | 1;
+  /** A boss's wings blow him this way (-1 or 1). */
+  gust?: -1 | 1;
+  /** A boss calls this many more soldiers. */
+  summon?: number;
+  /** The boss stamped, vanished, or healed this step: the scene shows it. */
+  stomped?: boolean;
+  blinked?: { from: number; to: number };
+  healed?: boolean;
 }
 
 export interface Box {
@@ -333,7 +354,7 @@ export function beamTilt(m: Monster): number {
 export function inBossGaze(m: Monster, x: number): boolean {
   if (!m.boss || !m.boss.open || m.boss.daze > 0 || m.stun > 0) return false;
   const ahead = (x - m.x) * m.facing;
-  return ahead >= BOSS.near && ahead <= BOSS.range;
+  return ahead >= BOSS.near && ahead <= m.boss.profile.range;
 }
 
 /** True when a point is inside the Watcher's beam. The beam is off while it turns. */
@@ -390,7 +411,10 @@ export class MonsterWorld {
         eye: spawn.design?.eye,
         figure: spawn.design?.figure,
         name: spawn.design?.name,
-        boss: spawn.design?.boss ? { phase: 0, open: true, cycle: 0, found: false, lost: 0, daze: 0, spitIn: 1 } : undefined,
+        boss:
+          spawn.design?.boss && spawn.design.profile
+            ? { profile: spawn.design.profile, mouth: spawn.design.mouth ?? { ahead: 0, up: spec.height * 0.8 }, phase: 0, open: true, cycle: 0, found: false, lost: 0, daze: 0, spitIn: 1, rainIn: 1.5, stompIn: 2, gustIn: 2, healIn: spawn.design.profile.heal / 2 }
+            : undefined,
         spitIn: 1,
         swipeIn: 0,
         swipeT: 0,
@@ -512,7 +536,9 @@ export class MonsterWorld {
       shot.x += shot.vx * dt;
       shot.y += shot.vy * dt;
       shot.age += dt;
-      if (shot.y >= this.ground(shot.x) || shot.age > MOVES.thorn.shotLife) shot.dead = true;
+      // A wave keeps to the ground, up and over a mound.
+      if (shot.ground) shot.y = this.ground(shot.x) - BOSS.wave.up;
+      if ((!shot.ground && shot.y >= this.ground(shot.x)) || shot.age > (shot.life ?? MOVES.thorn.shotLife)) shot.dead = true;
       else if (overlap({ x0: shot.x - 5, x1: shot.x + 5, y0: shot.y - 5, y1: shot.y + 5 }, body)) {
         shot.dead = true;
         out.hurt = true;
@@ -830,9 +856,10 @@ export class MonsterWorld {
       m.sees = false;
       return;
     }
-    const phase = Math.min(2, Math.floor((BOSS.hits - m.hitsLeft) / BOSS.perPhase));
+    const p = boss.profile;
+    const phase = bossPhase(p, m.hitsLeft);
     if (phase !== boss.phase) {
-      // Hurt into its next phase: it reels, and wakes angrier.
+      // Hurt into its next phase: it reels, and wakes angrier. Some call more soldiers; some vanish and rise elsewhere.
       boss.phase = phase;
       boss.daze = 0;
       boss.cycle = 0;
@@ -840,6 +867,8 @@ export class MonsterWorld {
       boss.found = false;
       m.stun = 1;
       out.sounds.push('alert');
+      if (p.summon[phase] > 0) out.summon = (out.summon ?? 0) + p.summon[phase];
+      if (p.blink) this.blink(m, hero, out);
     }
     if (m.stun > 0) {
       m.stun -= dt;
@@ -857,8 +886,8 @@ export class MonsterWorld {
     }
     m.facing = hero.x >= m.x ? 1 : -1;
     boss.cycle += dt;
-    if (boss.cycle >= BOSS.open[phase] + BOSS.shut[phase]) boss.cycle = 0;
-    boss.open = boss.cycle < BOSS.open[phase];
+    if (boss.cycle >= p.open[phase] + p.shut[phase]) boss.cycle = 0;
+    boss.open = boss.cycle < p.open[phase];
 
     const covered = inBossGaze(m, hero.x);
     const exposed = covered && !hero.hidden;
@@ -866,32 +895,102 @@ export class MonsterWorld {
     if (exposed) boss.found = true;
     if (covered && hero.hidden && boss.found) {
       boss.lost += dt;
-      if (boss.lost >= BOSS.loseAfter[phase]) {
+      if (boss.lost >= p.loseAfter[phase]) {
         boss.lost = 0;
         boss.found = false;
-        boss.daze = BOSS.daze[phase];
+        boss.daze = p.daze[phase];
         out.sounds.push('swoop');
       }
     } else boss.lost = Math.max(0, boss.lost - dt * 0.5);
     m.sees = exposed;
-    this.gazeOn(m, exposed, dt, out, BOSS.countdown);
+    this.gazeOn(m, exposed, dt, out, p.countdown);
 
-    // From its second phase its side heads spit at whoever its eye has found.
-    if (BOSS.spit[phase] > 0 && exposed) {
+    // It spits at whoever its eye has found: one shot, or a fan of them.
+    if (p.spit[phase] > 0 && exposed) {
       boss.spitIn -= dt;
       if (boss.spitIn <= 0) {
-        boss.spitIn = BOSS.spit[phase];
-        this.spit(m.x + m.facing * BOSS_POINTS.head.ahead, m.y - BOSS_POINTS.head.up, hero, MOVES.thorn.shotSpeed);
+        boss.spitIn = p.spit[phase];
+        this.volley(m, hero, p.volley[phase]);
         out.sounds.push('spit');
       }
     }
+    // The rest it does while its eye is open and he is in its clearing, seen or not.
+    const near = Math.abs(hero.x - m.x) <= p.range + 80;
+    const busy = boss.open && near;
+    // Salt, feathers or ash fall from the sky where he stands.
+    if (p.rain[phase] > 0 && busy && (boss.rainIn -= dt) <= 0) {
+      boss.rainIn = p.rain[phase];
+      const off = Math.sin(m.phase * 91.7) * 34;
+      this.shots.push({ x: hero.x + off, y: GROUND_Y - BOSS.rain.from, vx: 0, vy: BOSS.rain.speed, age: 0, dead: false, life: BOSS.rain.life });
+      out.sounds.push('swoop');
+    }
+    // It stamps: a wave runs along the ground both ways. He jumps it.
+    if (p.stomp[phase] > 0 && busy && (boss.stompIn -= dt) <= 0) {
+      boss.stompIn = p.stomp[phase];
+      for (const dir of [1, -1]) {
+        const x = m.x + dir * (m.spec.halfW + 6);
+        this.shots.push({ x, y: this.ground(x) - BOSS.wave.up, vx: dir * BOSS.wave.speed, vy: 0, age: 0, dead: false, life: BOSS.wave.life, ground: true });
+      }
+      out.stomped = true;
+      out.sounds.push('swipe');
+    }
+    // It walks at him.
+    if (p.walk[phase] > 0 && boss.open && Math.abs(hero.x - m.x) > m.spec.halfW + 20) {
+      m.x = clamp(m.x + m.facing * p.walk[phase] * dt, m.minX, m.maxX);
+      m.y = this.ground(m.x);
+    }
+    // Its wings blow him back, unless he lies flat.
+    if (p.gust[phase] > 0 && busy && !hero.lying && (boss.gustIn -= dt) <= 0) {
+      boss.gustIn = p.gust[phase];
+      out.gust = hero.x >= m.x ? 1 : -1;
+      out.sounds.push('swoop');
+    }
+    // With its eye shut it grows back, one strike at a time, but never out of the phase it is in.
+    if (p.heal > 0 && !boss.open) {
+      boss.healIn -= dt;
+      if (boss.healIn <= 0) {
+        boss.healIn = p.heal;
+        const top = p.hits - phase * p.perPhase;
+        if (m.hitsLeft < top) {
+          m.hitsLeft++;
+          out.healed = true;
+        }
+      }
+    }
+  }
+
+  /** A fan of shots from its mouth, the middle one at him. */
+  private volley(m: Monster, hero: HeroState, count: number): void {
+    const boss = m.boss;
+    if (!boss) return;
+    const x = m.x + m.facing * boss.mouth.ahead;
+    const y = m.y - boss.mouth.up;
+    const aim = Math.atan2(hero.centreY - y, hero.x - x);
+    const speed = MOVES.thorn.shotSpeed;
+    for (let i = 0; i < count; i++) {
+      const a = aim + (i - (count - 1) / 2) * BOSS.fan;
+      this.shots.push({ x, y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, age: 0, dead: false });
+    }
+  }
+
+  /** Hurt, it sinks and rises elsewhere: close in front of him, or back at its own place. Never behind him. */
+  private blink(m: Monster, hero: HeroState, out: StepResult): void {
+    const from = m.x;
+    const close = clamp(hero.x + 190, m.minX, m.maxX);
+    const to = Math.abs(m.x - m.homeX) < 4 && close < m.homeX - 60 ? close : m.homeX;
+    if (to <= hero.x + 60) return;
+    m.x = to;
+    m.y = this.ground(to);
+    out.blinked = { from, to };
   }
 
   /** He pulls its root: the phase it is in ends at once. */
   private pullRoot(m: Monster): void {
     if (!m.boss) return;
-    const next = (m.boss.phase + 1) * BOSS.perPhase;
-    m.hitsLeft = Math.max(0, BOSS.hits - next);
+    const p = m.boss.profile;
+    // Pulled in its last phase, it is beaten, however many strikes it had left.
+    const next = (m.boss.phase + 1) * p.perPhase;
+    m.hitsLeft = m.boss.phase >= 2 ? 0 : Math.max(0, p.hits - next);
     m.boss.daze = 0;
     m.pulled = true;
     if (m.hitsLeft <= 0) {

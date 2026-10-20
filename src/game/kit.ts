@@ -8,6 +8,7 @@
 // one game pixel at scale 1.
 
 import type { Creature, Enemy } from '../settings/schema';
+import type { BossBody } from './bosses';
 
 export interface Shape {
   /** An outline in SVG path form, filled; or, with `stroke`, a line of that width. */
@@ -268,6 +269,162 @@ export function bossFigure(): Figure {
 
 /** Where the boss's side heads spit from, and where its eye is: heights above its base, distance ahead. */
 export const BOSS_POINTS = { eye: { ahead: 22, up: 200 }, head: { ahead: 110, up: 146 } };
+
+// ---- the ten bosses (20 Oct: "every boss ... completely different") ---------------------------
+
+/** A boss's body, and the places on it that its moves come from: its great eye, and the mouth it spits from. */
+export interface BossLook {
+  figure: Figure;
+  eye: { ahead: number; up: number };
+  mouth: { ahead: number; up: number };
+}
+
+/** The point of an eye or mouth drawn at (x, y). */
+const point = (x: number, y: number) => ({ ahead: x, up: -y });
+
+/** Each boss's body, built from the kit; each its own shape and size (bosses.ts says which is whose). */
+export function bossBody(body: BossBody): BossLook {
+  if (body === 'thirst') return { figure: bossFigure(), eye: BOSS_POINTS.eye, mouth: BOSS_POINTS.head };
+  const b = blank();
+  let eye = point(22, -200);
+  let mouth = point(110, -146);
+  if (body === 'ash') {
+    // A burnt tree that stands like a queen: a crooked trunk, bare branches for arms, a crown of horns.
+    pair(b, P.leaf, 0, 0, 1.4);
+    put(b, 'M0 0 C20 -60 -20 -120 0 -184', 0, 0, 1, 1, 24);
+    put(b, 'M0 -110 C40 -124 74 -160 98 -196', 0, 0, 1, 1, 9);
+    put(b, 'M0 -120 C-44 -132 -70 -170 -86 -210', 0, 0, 1, 1, 9);
+    put(b, P.sprout, 60, -150, 1, 1, 5);
+    put(b, P.sprout, -50, -162, 1, -1, 5);
+    put(b, P.knob, 0, -204, 1.7);
+    pair(b, P.horn, 4, -220, 1.4);
+    put(b, P.jaw, 100, -204, 0.6);
+    b.eyes.push({ x: 12, y: -206, r: 14, pupil: true }, { x: 100, y: -212, r: 3.6 });
+    eye = point(12, -206);
+    mouth = point(104, -204);
+    Object.assign(b, { top: 262, mid: 150, half: 30, reach: 116 });
+  } else if (body === 'salt') {
+    // A heavy king of salt crystals: a great round body on short legs, a crown of spikes.
+    pair(b, P.haunch, -10, 0, 2);
+    put(b, P.ball, 0, -86, 1.55);
+    put(b, P.spikes, 0, -96, 1.6);
+    put(b, P.spikes, 0, -96, 1.6, -1);
+    put(b, P.jaw, 78, -60, 0.95);
+    b.eyes.push({ x: 34, y: -104, r: 21, pupil: true }, { x: -20, y: -112, r: 6 }, { x: -44, y: -96, r: 5 });
+    eye = point(34, -104);
+    mouth = point(96, -60);
+    Object.assign(b, { top: 214, mid: 86, half: 46, reach: 112 });
+  } else if (body === 'twins') {
+    // Two heads on one low body, one higher than the other.
+    put(b, P.lump, 0, 0, 1.5);
+    put(b, 'M20 -70 C30 -110 50 -140 46 -176', 0, 0, 1, 1, 14);
+    put(b, 'M-20 -70 C-30 -100 -50 -120 -46 -146', 0, 0, 1, 1, 14);
+    put(b, P.ball, 46, -186, 0.78);
+    put(b, P.spikes, 46, -196, 0.8);
+    put(b, P.ball, -46, -150, 0.7);
+    put(b, P.spikes, -46, -158, 0.7, -1);
+    b.eyes.push({ x: 58, y: -192, r: 14, pupil: true }, { x: -36, y: -154, r: 12, pupil: true });
+    eye = point(58, -192);
+    mouth = point(-36, -150);
+    Object.assign(b, { top: 258, mid: 100, half: 46, reach: 100 });
+  } else if (body === 'lamp') {
+    // A street lamp come alive: a tall thin post on three feet, a hood, and a lantern that is all eye.
+    put(b, line(0, 0, 0, -236), 0, 0, 1, 1, 14);
+    put(b, line(0, -10, 34, 0), 0, 0, 1, 1, 8);
+    put(b, line(0, -10, -34, 0), 0, 0, 1, 1, 8);
+    put(b, line(-34, -190, 34, -190), 0, 0, 1, 1, 8);
+    put(b, P.strand, 32, -190, 1.2, 1, 4);
+    put(b, P.strand, -32, -190, 1.2, -1, 4);
+    put(b, P.ball, 0, -270, 0.72);
+    put(b, P.horn, -24, -296, 1.3);
+    put(b, P.jaw, 0, -300, 0.5);
+    b.eyes.push({ x: 8, y: -272, r: 22, pupil: true });
+    eye = point(8, -272);
+    mouth = point(30, -250);
+    Object.assign(b, { top: 314, mid: 160, half: 24, reach: 70 });
+  } else if (body === 'mire') {
+    // A wide mound of mud, many small eyes, roots hanging, little sprouts on her back: her children.
+    put(b, P.lump, 0, 0, 2.2);
+    for (const x of [-64, -36, 30, 58]) put(b, P.strand, x, -10, 1, 1, 5);
+    for (const [x, s] of [[-46, 1.6], [-14, 2], [18, 1.5]] as const) put(b, P.sprout, x, -112, s, 1, 6);
+    put(b, P.jaw, 74, -46, 1);
+    b.eyes.push({ x: 40, y: -86, r: 18, pupil: true }, { x: 4, y: -100, r: 5 }, { x: -24, y: -96, r: 4.5 }, { x: -48, y: -78, r: 4 }, { x: 64, y: -64, r: 4 });
+    eye = point(40, -86);
+    mouth = point(96, -46);
+    Object.assign(b, { top: 190, mid: 60, half: 46, reach: 100 });
+  } else if (body === 'giant') {
+    // A giant of bones, on two long legs: a narrow body, long arms, a small horned head high up.
+    put(b, line(14, 0, 22, -150), 0, 0, 1, 1, 18);
+    put(b, line(-16, 0, -22, -150), 0, 0, 1, 1, 18);
+    put(b, P.torso, 0, -196, 1.9);
+    put(b, line(36, -236, 58, -120), 0, 0, 1, 1, 14);
+    put(b, line(-36, -236, -60, -130), 0, 0, 1, 1, 14);
+    put(b, P.knob, 6, -282, 1.5);
+    pair(b, P.horn, 8, -294, 1.2);
+    b.eyes.push({ x: 16, y: -284, r: 10, pupil: true });
+    eye = point(16, -284);
+    mouth = point(30, -270);
+    Object.assign(b, { top: 330, mid: 196, half: 42, reach: 90 });
+  } else if (body === 'crow') {
+    // A huge crow on thin legs: a round body, a great beak, a long tail, wings that beat.
+    put(b, line(10, 0, 4, -98), 0, 0, 1, 1, 7);
+    put(b, line(-12, 0, -8, -98), 0, 0, 1, 1, 7);
+    put(b, P.tail, -20, -120, 1.6);
+    put(b, P.orb, 0, -150, 2.6);
+    put(b, P.knob, 50, -206, 1.6);
+    put(b, P.jaw, 78, -204, 1.1);
+    Object.assign(b, { top: 250, mid: 150, half: 46, reach: 140 });
+    wings(b);
+    b.eyes.push({ x: 58, y: -214, r: 11, pupil: true });
+    eye = point(58, -214);
+    mouth = point(104, -204);
+  } else if (body === 'widow') {
+    // A tall thorn bush with a long veiled head, and four thorn mouths on bent stems, low and high.
+    pair(b, P.leaf, 0, 0, 1.9);
+    put(b, 'M0 0 C24 -50 -24 -110 0 -200', 0, 0, 1, 1, 18);
+    put(b, P.thorns, 0, -10, 1.5);
+    put(b, P.thorns, 0, -10, 1.5, -1);
+    put(b, P.thorns, 0, -90, 1.2);
+    put(b, 'M0 -50 C40 -50 70 -70 84 -100', 0, 0, 1, 1, 7);
+    put(b, 'M0 -60 C-40 -60 -66 -84 -78 -112', 0, 0, 1, 1, 7);
+    put(b, 'M0 -120 C50 -126 92 -160 104 -196', 0, 0, 1, 1, 8);
+    put(b, 'M0 -130 C-46 -138 -84 -170 -96 -210', 0, 0, 1, 1, 8);
+    put(b, P.jaw, 86, -110, 0.6);
+    put(b, P.jaw, -78, -122, 0.6);
+    put(b, P.jaw, 106, -206, 0.75);
+    put(b, P.jaw, -96, -220, 0.75);
+    put(b, P.torso, 0, -236, 1.15);
+    for (const x of [-18, -8, 2, 12, 22]) put(b, P.strand, x, -226, 1.6, 1, 3);
+    b.eyes.push({ x: 8, y: -250, r: 13, pupil: true }, { x: 86, y: -118, r: 3.2 }, { x: -78, y: -130, r: 3.2 }, { x: 104, y: -215, r: 4 }, { x: -96, y: -229, r: 4 });
+    eye = point(8, -250);
+    mouth = point(116, -206);
+    Object.assign(b, { top: 276, mid: 150, half: 36, reach: 126 });
+  } else {
+    // The Last Drought: the biggest of them. A great split trunk, a spiked head with a vast eye, horns, wings, jaws.
+    pair(b, P.leaf, 0, 0, 2.3);
+    pair(b, P.haunch, -6, 0, 2.2);
+    put(b, 'M8 0 C34 -70 -18 -140 6 -224', 0, 0, 1, 1, 34);
+    put(b, 'M0 -60 C60 -70 100 -120 112 -176', 0, 0, 1, 1, 11);
+    put(b, 'M0 -70 C-60 -80 -100 -130 -112 -186', 0, 0, 1, 1, 11);
+    put(b, P.jaw, 116, -192, 0.9);
+    put(b, P.jaw, -108, -202, 0.9);
+    put(b, P.ball, 4, -262, 1.45);
+    put(b, P.spikes, 4, -276, 1.5);
+    put(b, P.spikes, 4, -276, 1.5, -1);
+    pair(b, P.horn, 10, -318, 1.8);
+    Object.assign(b, { top: 380, mid: 230, half: 46, reach: 150 });
+    wings(b);
+    b.eyes.push({ x: 30, y: -270, r: 30, pupil: true }, { x: 114, y: -202, r: 4.5 }, { x: -110, y: -212, r: 4.5 });
+    eye = point(30, -270);
+    mouth = point(128, -192);
+  }
+  // The tallest are drawn a little smaller, so their heads stay on the screen.
+  const k = body === 'drought' ? 0.84 : body === 'giant' || body === 'lamp' ? 0.92 : 1;
+  const figure = finish(b, k);
+  figure.rise = Math.round((b.top + 50) * k);
+  const at = (p: { ahead: number; up: number }) => ({ ahead: Math.round(p.ahead * k), up: Math.round(p.up * k) });
+  return { figure, eye: at(eye), mouth: at(mouth) };
+}
 
 // ---- described monsters -----------------------------------------------------------------------
 

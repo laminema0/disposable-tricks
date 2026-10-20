@@ -4,7 +4,7 @@
 import { makeRng } from '../core/rng';
 import { ENEMIES, type Creature, type Enemy, type Settings } from '../settings/schema';
 import { bossDesign, designFor, mergeDesign } from './creatures';
-import { BOSS_FROM, EXTRA_WATCHERS, MERGE_SHARE, MONSTER_COUNT, SAFE_END, SAFE_START } from './config';
+import { BOSS, BOSS_FROM, EXTRA_WATCHERS, MERGE_SHARE, MONSTER_COUNT, SAFE_END, SAFE_START } from './config';
 import type { Level } from './level';
 import { MONSTERS, type Spawn } from './monsters';
 
@@ -15,6 +15,8 @@ export type MonsterRules = Pick<Settings, 'enemies' | 'difficulty' | 'twist' | '
   boss?: boolean;
   /** Kinds this land has more of: each entry is one more share (lands.ts). */
   more?: readonly Enemy[];
+  /** Which world: it says which boss waits (bosses.ts). */
+  chapter?: number;
 };
 /** One place in the game's cast: a named monster, or the number of a described one. */
 export type Cast = Enemy | number;
@@ -121,7 +123,9 @@ export function placeMonsters(level: Level, rules: MonsterRules): Spawn[] {
   // The boss stands in its clearing, last of all.
   if (level.arena && hasBoss(rules)) {
     const x = level.arena.bossX;
-    spawns.push({ kind: 'watcher', x, minX: x, maxX: x, design: bossDesign() });
+    const design = bossDesign(rules.chapter ?? 1);
+    const moves = design.profile !== undefined && (design.profile.blink || design.profile.walk.some((v) => v > 0));
+    spawns.push({ kind: 'watcher', x, minX: moves ? level.arena.x0 + BOSS.roam : x, maxX: x, design });
   }
   return spawns;
 }

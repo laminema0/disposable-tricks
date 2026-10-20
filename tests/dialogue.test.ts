@@ -23,19 +23,33 @@ describe('dialogue', () => {
     expect(intro[intro.length - 1].text).toMatch(/soldiers/);
     expect(bossAlone(1)[0].who).toBe('boss');
     const death = bossDeath(2);
-    expect(death.map((l) => l.text).join(' ')).toMatch(/sisters|brothers|elders|deep/);
+    // As it dies it names the next boss.
+    expect(death[0].text).toContain('Salt King');
     expect(death[death.length - 1].who).toBe('hero');
     expect(dyingLine(1).length).toBeGreaterThan(5);
   });
 
   it('lines stay short enough to read in a moment', () => {
-    const all = [...ENEMIES.flatMap((k) => [1, 2, 3].flatMap((c) => taunt(k, c))), ...[1, 2, 3, 4, 5].flatMap((c) => [...bossIntro(c), ...bossAlone(c), ...bossDeath(c)])];
+    const all = [...ENEMIES.flatMap((k) => [1, 2, 3].flatMap((c) => taunt(k, c))), ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].flatMap((c) => [...bossIntro(c), ...bossAlone(c), ...bossDeath(c)])];
     for (const line of all) expect(line.text.length, line.text).toBeLessThanOrEqual(60);
   });
 
-  it('more soldiers in later worlds, never more than six', () => {
-    expect(soldierCount(1)).toBe(3);
-    expect(soldierCount(9)).toBe(6);
+  it('more soldiers in later worlds, never fewer than before', () => {
+    expect(soldierCount(1)).toBe(2);
+    expect(soldierCount(10)).toBe(7);
+    for (let c = 2; c <= 10; c++) expect(soldierCount(c)).toBeGreaterThanOrEqual(soldierCount(c - 1));
+  });
+
+  it('ten bosses, ten different people: no two say the same thing', () => {
+    const said = new Set<string>();
+    for (let c = 1; c <= 10; c++) {
+      for (const line of [...bossIntro(c), ...bossAlone(c), ...bossDeath(c)]) {
+        if (line.who !== 'boss') continue;
+        expect(said.has(line.text), line.text).toBe(false);
+        said.add(line.text);
+      }
+    }
+    expect(new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(bossName)).size).toBe(10);
   });
 });
 

@@ -143,7 +143,7 @@ export class FigureView {
       this.eyes[i].setPosition(ex, ey).setDisplaySize(size, shut ? size * 0.4 : size).setVisible(!stunned);
       this.glows[i].setPosition(ex, ey).setAlpha(shut ? 0.12 : 0.4 + this.alert * 0.35);
       // The pupil narrows as its countdown runs out.
-      const left = 1 - 0.7 * Math.min(1, m.gaze / (m.boss ? BOSS.countdown : WATCHER.countdown));
+      const left = 1 - 0.7 * Math.min(1, m.gaze / (m.boss ? m.boss.profile.countdown : WATCHER.countdown));
       this.pupils[i]?.setPosition(ex + m.facing * eye.r * 0.3, ey).setDisplaySize(eye.r * 0.8 * left, eye.r * 0.8).setVisible(!stunned && !shut);
     });
   }
@@ -161,7 +161,7 @@ export class FigureView {
       if (!m.boss.open || m.boss.daze > 0) return;
       const eye = watcherEye(m);
       this.sight.fillStyle(this.beamColour, m.exposing ? 0.26 : 0.13);
-      this.sight.fillTriangle(eye.x, eye.y, m.x + m.facing * BOSS.near, GROUND_Y, m.x + m.facing * BOSS.range, GROUND_Y);
+      this.sight.fillTriangle(eye.x, eye.y, m.x + m.facing * BOSS.near, GROUND_Y, m.x + m.facing * m.boss.profile.range, GROUND_Y);
     } else if ((m.kind === 'watcher' || m.also === 'watcher') && m.state !== 'turn') {
       const eye = watcherEye(m);
       const far = eye.x + m.facing * WATCHER.range;

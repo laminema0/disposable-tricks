@@ -173,6 +173,15 @@ export const BOSS = {
   /** How close to its stem he must be to pull its root while it is dazed. */
   pull: 46,
   flowers: 26,
+  /** A boss that walks or vanishes may come this close to the start of its clearing. */
+  roam: 200,
+  /** Shots that fall from the sky: from this high above the ground, this fast; and waves along the ground. */
+  rain: { from: 430, speed: 290, life: 2.4 },
+  wave: { speed: 250, life: 2.6, up: 9 },
+  /** How hard a gust of its wings throws him back. */
+  gust: 520,
+  /** Shots in a fan spread this far apart (radians). */
+  fan: 0.22,
 };
 /** The share of a level's monsters that are merges, by difficulty 1 to 3. They stand in the later part of the road. */
 export const MERGE_SHARE = [0, 0.2, 0.4, 0.55];

@@ -4,6 +4,8 @@
 // dies tells him its brothers hold the rest of the world. Pure: the scene shows the lines.
 
 import type { Enemy } from '../settings/schema';
+import { bossOf } from './bosses';
+import { levelOf } from './run';
 
 export type Speaker = 'hero' | 'monster' | 'boss';
 
@@ -48,17 +50,9 @@ const TAUNTS: Record<Enemy, [string, string][]> = {
 /** The first monster of a world to fall says this. */
 const DYING = ['We die… but our master is waiting.', 'Kill us. He will still drink the world.', 'You are too late, rose.'];
 
-/** One boss for each world, in order; after the last they come round again. */
-const BOSSES = [
-  { name: 'The Thirst', brothers: 'my brothers' },
-  { name: 'The Ash Queen', brothers: 'my sisters' },
-  { name: 'The Salt King', brothers: 'my brothers' },
-  { name: 'The Dust Twins', brothers: 'our elders' },
-  { name: 'The Last Drought', brothers: 'the deep ones' },
-];
-
+/** One boss for each of the ten worlds, each with its own words (bosses.ts). */
 export function bossName(chapter: number): string {
-  return BOSSES[(Math.max(1, chapter) - 1) % BOSSES.length].name;
+  return bossOf(chapter).name;
 }
 
 /** The taunt a monster of this kind makes in this world, and his answer. */
@@ -81,38 +75,31 @@ export function monsterName(kind: Enemy): string {
 
 /** As he walks into the boss's clearing. It ends with the boss calling its soldiers. */
 export function bossIntro(chapter: number): Line[] {
-  const boss = BOSSES[(Math.max(1, chapter) - 1) % BOSSES.length];
-  const b = (text: string): Line => ({ who: 'boss', name: boss.name, text });
-  const h = (text: string): Line => ({ who: 'hero', name: HERO_NAME, text });
+  const boss = bossOf(chapter);
+  const [first, answer, last] = boss.intro;
   return [
-    b('A son of the rose. You came for the water?'),
-    h('Every drop you took. I will end you.'),
-    b('Brave little bud. First, meet my soldiers.'),
+    { who: 'boss', name: boss.name, text: first },
+    { who: 'hero', name: HERO_NAME, text: answer },
+    { who: 'boss', name: boss.name, text: last },
   ];
 }
 
 /** When its soldiers have fallen. */
 export function bossAlone(chapter: number): Line[] {
-  const name = bossName(chapter);
-  return [
-    { who: 'boss', name, text: 'Enough. Then face me yourself.' },
-  ];
+  const boss = bossOf(chapter);
+  return [{ who: 'boss', name: boss.name, text: boss.alone }];
 }
 
 /** As it dies. */
 export function bossDeath(chapter: number): Line[] {
-  const boss = BOSSES[(Math.max(1, chapter) - 1) % BOSSES.length];
+  const boss = bossOf(chapter);
   return [
-    { who: 'boss', name: boss.name, text: `Don't smile yet. ${capital(boss.brothers)} hold the rest.` },
-    { who: 'hero', name: HERO_NAME, text: 'Then I will find them.' },
+    { who: 'boss', name: boss.name, text: boss.death[0] },
+    { who: 'hero', name: HERO_NAME, text: boss.death[1] },
   ];
 }
 
 /** How many soldiers the boss calls in, by world. */
 export function soldierCount(chapter: number): number {
-  return Math.min(6, 2 + Math.max(1, chapter));
-}
-
-function capital(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1);
+  return levelOf(chapter).soldiers;
 }

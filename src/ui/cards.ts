@@ -179,7 +179,7 @@ export function createEndCard(handlers: EndHandlers): EndCard {
         keep,
         iconButton('icon-btn', ACTION_ICONS.fresh, 'New game', handlers.onNew),
       );
-      const heading = !finish ? 'Paused' : finish.score !== undefined ? (finish.won ? 'You won' : 'Game over') : (finish as Run).chapter !== undefined ? 'The flower grows' : finish.won ? (settings.story === 'home' ? 'Home at last' : 'The flower grows') : 'The last petal fell';
+      const heading = !finish ? 'Paused' : (finish as Run).complete ? 'The world is green again' : finish.score !== undefined ? (finish.won ? 'You won' : 'Game over') : (finish as Run).chapter !== undefined ? 'The flower grows' : finish.won ? (settings.story === 'home' ? 'Home at last' : 'The flower grows') : 'The last petal fell';
       // Under the heading, only how the run went (Amin, 18 Oct: no line of answers here).
       const column = el('div', 'hub');
       column.append(el('h1', 'hub-title', heading));

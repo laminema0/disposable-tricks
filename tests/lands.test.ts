@@ -9,15 +9,19 @@ import { defaultSettings } from '../src/settings/defaults';
 import { ENEMIES } from '../src/settings/schema';
 
 describe('lands', () => {
-  it('five lands, each after the first with its own colours and scenery, and its boss', () => {
-    expect(LANDS).toHaveLength(5);
-    expect(new Set(LANDS.map((l) => l.name)).size).toBe(5);
+  it('ten lands (20 Oct), each after the first with its own colours and scenery, and its own boss', () => {
+    expect(LANDS).toHaveLength(10);
+    expect(new Set(LANDS.map((l) => l.name)).size).toBe(10);
     for (const land of LANDS.slice(1)) {
       expect(land.palette).toBeDefined();
       expect(land.scenery?.length).toBeGreaterThan(0);
     }
-    expect(landOf(6)).toBe(LANDS[0]);
+    // Nothing comes round again: past the tenth is still the tenth.
+    expect(landOf(10)).toBe(LANDS[9]);
+    expect(landOf(12)).toBe(LANDS[9]);
     expect(bossName(2)).toBe('The Ash Queen');
+    // Each land's line names its own boss.
+    for (let c = 2; c <= 10; c++) expect(landOf(c).line, landOf(c).name).toContain(bossName(c));
   });
 
   it('a world takes its land: world 2 is the ash forest, in its colours, darker', () => {

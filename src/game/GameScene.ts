@@ -18,7 +18,7 @@ import type { Voice } from '../core/sfx';
 import { mixColour } from '../core/light';
 import { defaultSettings } from '../settings/defaults';
 import { ENEMIES, type Creature, type Settings } from '../settings/schema';
-import { DROPS, GOAL_FROM_END, SAFE_START, GROUND_Y, HEALTH, LIGHT, MAX_VIEW_W, NOISE, SHOT, STRIKE, VIEW_H, WEAPON_USE } from './config';
+import { BOSS, DROPS, GOAL_FROM_END, SAFE_START, GROUND_Y, HEALTH, LIGHT, MAX_VIEW_W, NOISE, SHOT, STRIKE, VIEW_H, WEAPON_USE } from './config';
 import { CreatureView } from './creatureView';
 import { designFor, mergeDesign, type Design } from './creatures';
 import { FigureView } from './figureView';
@@ -28,7 +28,7 @@ import { Hero } from './hero';
 import { Hud } from './hud';
 import { addArena, buildLevel, groundAt, hideSpotAt, isRoof, isShelter, pitAt, waterAt, waterKind, type HideSpot, type Level, type LevelLight, type Water } from './level';
 import { FLOWER_COLOURS, makeLook, toHex, type Look } from './look';
-import { HUNT, MonsterWorld, type Monster, type Shot, type Spawn } from './monsters';
+import { HUNT, MonsterWorld, type Monster, type Shot, type Spawn, type StepResult } from './monsters';
 import { RoleView } from './roleView';
 import { groundAround, hasBoss, placeMonsters } from './placement';
 import { drawScenery } from './sceneryView';
@@ -39,7 +39,7 @@ import { CornerTurn } from './corner';
 import { MiniMap } from './minimap';
 import { dryness, QUEST, type QuestFlower, type QuestLayout, type Stone } from './quest';
 import { BACK_GATE, chooseGates, worldLayout } from './world';
-import { afterGate, count, detourIndex, enterStreet, gainXp, has, leaveStreet, newRun, planChapter, SKILLS, XP, xpFor, type RunState, type SkillKey } from './run';
+import { afterGate, count, detourIndex, enterStreet, gainXp, has, isLastLevel, LAST_LEVEL, leaveStreet, newRun, planChapter, SKILLS, XP, xpFor, type RunState, type SkillKey } from './run';
 
 /** How often the monsters talk (Amin, 19 Oct: not all of them, and he does not answer all). */
 /** Gates fade out and in; the turning camera (corner.ts) is kept but not used (Amin, 20 Oct). */
@@ -47,6 +47,9 @@ const FADE_ONLY = true;
 
 /** The size of a breakable stone: half its width, and its height. */
 const STONE = { half: 38, height: 44 };
+
+/** The finale: its day sky, sun and warm light, how many flowers open, and seconds until the end card. */
+const FINALE = { skyTop: '#5d9fd6', sky: '#9ccdea', horizon: '#ffe0a3', sun: 0xffd76a, sunGlow: 0xffc65a, warm: 0xffd9a0, green: 0x6a994e, flowers: 54, time: 8.5 };
 
 const TALKING = { taunt: 0.5, answer: 0.4, line: 1.3 };
 
@@ -73,6 +76,8 @@ export interface Finish {
   score?: number;
   /** The endless run: the world he reached, how far he walked in all, and the flowers he found in it. */
   chapter?: number;
+  /** He beat the last boss: the whole game is won and the world is green. */
+  complete?: boolean;
   flowers?: number;
   distance?: number;
 }
@@ -255,7 +260,7 @@ export class GameScene extends Phaser.Scene {
   /** One line for the pause card: the world, and the flowers found in it (loop 9). */
   progressLine(): string {
     if (this.previewAt !== undefined || !this.run) return '';
-    return `World ${this.run.chapter} · ${this.foundCount()} of ${QUEST.total} flowers found`;
+    return `World ${this.run.chapter} of ${LAST_LEVEL} · ${this.foundCount()} of ${QUEST.total} flowers found`;
   }
 
   /** Where he is and what he has, so a changed game can carry on from here. */
@@ -272,7 +277,7 @@ export class GameScene extends Phaser.Scene {
 
     createTextures(this);
     this.level = buildLevel(plan?.seed ?? settings.seed, settings, plan?.screens, undefined, plan?.chunks);
-    const rules = { ...settings, seed: plan?.seed ?? settings.seed, count: plan?.monsters, boss: plan?.boss, more: plan?.more };
+    const rules = { ...settings, seed: plan?.seed ?? settings.seed, count: plan?.monsters, boss: plan?.boss, more: plan?.more, chapter: this.run.chapter };
     // A stretch with a boss gets its clearing before the gate.
     if (hasBoss(rules)) addArena(this.level);
     this.cameras.main.setBackgroundColor(this.look.far);
@@ -510,6 +515,7 @@ export class GameScene extends Phaser.Scene {
       this.playMonsterSounds(result.sounds);
 
       if (result.push && !result.hurt) hero.knock(result.push * 220);
+      this.showBossMoves(result);
       this.health = tickHealth(this.health, dt);
       if (result.hurt || (hero.events.fell && HEALTH.pitCostsPetal)) this.loseHeart();
       this.collectFlowers(dt);
@@ -881,17 +887,18 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Its soldiers come out of the dust, between him and it, and come straight for him. */
-  private callSoldiers(boss: Monster): void {
+  private callSoldiers(boss: Monster, more = 0): void {
     const arena = this.level.arena;
     if (!arena) return;
-    const n = soldierCount(this.run.chapter);
-    const from = Math.max(this.hero.x + 240, arena.x0 + 200);
+    const n = more || soldierCount(this.run.chapter);
+    const from = Math.min(Math.max(this.hero.x + 240, arena.x0 + 200), boss.x - 80);
     const to = Math.max(from + 40, boss.x - 110);
     const kinds = (['crawler', 'flyer', 'stalker'] as const).filter((k) => this.settings.enemies.includes(k));
     const cast = kinds.length > 0 ? kinds : (['crawler'] as const);
     const spawns: Spawn[] = Array.from({ length: n }, (_, i) => {
       const x = Math.round(from + ((to - from) * i) / Math.max(1, n - 1));
-      return { kind: cast[i % cast.length], x, minX: arena.x0 + 20, maxX: boss.x - 60 };
+      const maxX = Math.max(arena.x0 + 40, boss.x - 60);
+      return { kind: cast[i % cast.length], x: Math.min(x, maxX), minX: arena.x0 + 20, maxX };
     });
     for (const m of this.world.summon(spawns)) {
       this.soldiers.add(m);
@@ -904,8 +911,30 @@ export class GameScene extends Phaser.Scene {
     }
     this.sfx.rush();
     this.cameras.main.shake(220, 0.006);
+    // Called mid-fight, they join it; the boss does not stop.
+    if (more) return;
     this.bossStage = 'soldiers';
     this.fightMood(true);
+  }
+
+  /** What the boss did this step, made visible: a stamp, a gust, a vanishing, a wound closing, more soldiers. */
+  private showBossMoves(result: StepResult): void {
+    const boss = this.world.monsters.find((m) => m.boss !== undefined && m.alive);
+    if (result.gust) {
+      this.hero.knock(result.gust * BOSS.gust);
+      this.sand.explode(16, this.hero.x - result.gust * 30, GROUND_Y - 4);
+      this.cameras.main.shake(140, 0.003);
+    }
+    if (result.stomped && boss) {
+      this.cameras.main.shake(260, 0.008);
+      this.sand.explode(26, boss.x, GROUND_Y - 2);
+    }
+    if (result.blinked) {
+      this.puff.explode(22, result.blinked.from, GROUND_Y - 40);
+      this.puff.explode(22, result.blinked.to, GROUND_Y - 40);
+    }
+    if (result.healed && boss) this.petalBits.explode(6, boss.x, GROUND_Y - boss.spec.height * 0.5);
+    if (result.summon && boss) this.callSoldiers(boss, result.summon);
   }
 
   /** In the fight with the soldiers his weapon is full, holds two more, and comes back three times as fast. */
@@ -966,7 +995,11 @@ export class GameScene extends Phaser.Scene {
       ? 'Its soldiers are here. Fight!'
       : !boss
       ? `${standing} still stand. Every one must fall.`
-      : boss.boss && boss.boss.daze > 0 ? 'It is dazed. Run in and pull its root.' : armed ? 'Strike its stem. Or let it see you, then hide.' : 'Let it see you, then hide. It will lose you.';
+      : boss.boss && boss.boss.daze > 0
+      ? boss.boss.profile.dazed
+      : armed
+      ? (boss.boss?.profile.hint ?? 'Strike its stem. Or let it see you, then hide.')
+      : 'Let it see you, then hide. It will lose you.';
     this.bossHint.setText(line).setX(this.scale.width / 2).setVisible(true);
   }
 
@@ -1117,7 +1150,7 @@ export class GameScene extends Phaser.Scene {
     const street = this.run.stage === 'street';
     const here = street ? this.quest.flowers.filter((f) => !this.run.found.includes(f.id)).length : 0;
     const land = landOf(this.run.chapter);
-    const head = street ? 'A detour' : `World ${this.run.chapter} · ${land.name}`;
+    const head = street ? 'A detour' : `World ${this.run.chapter} of ${LAST_LEVEL} · ${land.name}`;
     const line = street
       ? here > 0
         ? `${here} living ${here === 1 ? 'flower waits' : 'flowers wait'} here.`
@@ -1509,11 +1542,92 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: colour, d: 0, duration: 1800, delay: 500, ease: 'Sine.easeInOut', onUpdate: () => this.applyDryness(colour.d) });
     this.music?.resolve();
     this.sfx.win();
+    // The last world's flowers are in the ground: the whole world comes back (Amin, 20 Oct).
+    if (isLastLevel(this.run.chapter)) {
+      this.time.delayedCall(1600, () => this.finale());
+      return;
+    }
     this.time.delayedCall(3200, () => {
       const next = afterGate({ ...this.carried(), planted: this.run.planted + 1 }, Math.round(this.goalX));
       this.atGate = false;
       this.leave(next, 0);
     });
+  }
+
+  /**
+   * The end of the game (Amin, 20 Oct): "The last boss, when we defeated, the whole world becomes greener and the
+   * flowers comes up and the sun comes up." The night sky turns to day, the moon goes and the sun rises behind the
+   * hills, green spreads along the road from where he stands, and flowers open everywhere. Then the end card.
+   */
+  private finale(): void {
+    this.ending = 'won';
+    this.finished = true;
+    this.exposed = false;
+    this.coachText?.setVisible(false);
+    this.bossHint?.setVisible(false);
+    const w = this.scale.width;
+    const left = this.cameras.main.scrollX;
+    const add = Phaser.BlendModes.ADD;
+    // Day comes into the sky; the moon and the stars go.
+    const day = this.add
+      .image(0, 0, skyTexture(this, FINALE.skyTop, FINALE.sky, FINALE.horizon))
+      .setOrigin(0, 0)
+      .setDisplaySize(MAX_VIEW_W, GROUND_Y + 10)
+      .setScrollFactor(0)
+      .setDepth(DEPTH.sky + 0.5)
+      .setAlpha(0);
+    this.tweens.add({ targets: day, alpha: 1, duration: 4200, delay: 600, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: [this.moon, this.moonHalo], alpha: 0, duration: 2200, ease: 'Sine.easeIn' });
+    // The sun rises behind the hills.
+    const sunX = w * 0.3;
+    const halo = this.add.image(sunX, GROUND_Y + 60, 'glow').setDisplaySize(460, 460).setTint(FINALE.sunGlow).setAlpha(0.75).setBlendMode(add).setScrollFactor(0).setDepth(DEPTH.moon + 0.1);
+    const sun = this.add.circle(sunX, GROUND_Y + 60, 34, FINALE.sun, 1).setScrollFactor(0).setDepth(DEPTH.moon + 0.2);
+    this.tweens.add({ targets: [sun, halo], y: 96, duration: 5200, delay: 900, ease: 'Sine.easeOut' });
+    // Warm light over everything.
+    const wash = this.add.rectangle(0, 0, MAX_VIEW_W + 40, VIEW_H + 40, FINALE.warm, 1).setOrigin(0).setScrollFactor(0).setBlendMode(add).setAlpha(0).setDepth(DEPTH.front + 0.5);
+    this.tweens.add({ targets: wash, alpha: 0.16, duration: 4000, delay: 1200, ease: 'Sine.easeInOut' });
+    // Whatever monsters are left turn to petals and are gone.
+    for (const [monster, view] of this.views) {
+      if (Math.abs(monster.x - this.hero.x) < w) this.petalBits.explode(12, monster.x, monster.y - monster.spec.height / 2);
+      view.destroy();
+    }
+    this.views.clear();
+    // The ground turns green from where he stands, and grass and flowers come up all along it.
+    const green = this.add.rectangle(left - 200, GROUND_Y - 2, w + 400, 9, FINALE.green, 1).setOrigin(0, 0).setDepth(DEPTH.ground + 0.05).setAlpha(0);
+    this.tweens.add({ targets: green, alpha: 0.9, duration: 2400, delay: 700, ease: 'Sine.easeInOut' });
+    const rng = makeRng(0x6eee ^ this.level.seed);
+    for (let x = left - 120; x < left + w + 120; x += 56) {
+      if (pitAt(this.level, x)) continue;
+      const at = x;
+      this.time.delayedCall(700 + Math.abs(at - this.hero.x) * 2.4, () => this.drawRevival(at, true));
+    }
+    for (let i = 0; i < FINALE.flowers; i++) {
+      const x = left + rng() * w;
+      if (pitAt(this.level, x)) continue;
+      const bloom = this.add.image(x, groundAt(this.level, x) - 4, 'flower').setTint(FLOWER_COLOURS[i % FLOWER_COLOURS.length]).setDepth(DEPTH.front).setScale(0);
+      const k = (10 + rng() * 12) / bloom.width;
+      this.tweens.add({ targets: bloom, scale: k, angle: 72, duration: 620, delay: 1300 + Math.abs(x - this.hero.x) * 3 + rng() * 900, ease: 'Back.easeOut' });
+    }
+    this.petalBits.explode(30, this.hero.x, this.hero.y - 40);
+    const words = this.add
+      .text(w / 2, VIEW_H * 0.3, 'The world is green again.', { fontFamily: '"Newsreader", Georgia, serif', fontSize: '30px', color: '#2f4a1e' })
+      // Dark green on the new day sky, with a pale glow round it.
+      .setShadow(0, 0, 'rgba(255, 250, 230, 0.85)', 12, false, true)
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(DEPTH.hud)
+      .setAlpha(0);
+    this.tweens.add({ targets: words, alpha: 1, duration: 1400, delay: 3600, ease: 'Sine.easeOut' });
+    const finish: Finish = {
+      won: true,
+      complete: true,
+      petals: this.health.petals,
+      defeated: this.run.defeated + this.defeated,
+      chapter: this.run.chapter,
+      flowers: this.foundCount(),
+      distance: Math.round(this.run.distance + this.hero.x),
+    };
+    this.time.delayedCall(FINALE.time * 1000, () => this.game.events.emit(FINISHED, finish));
   }
 
   /** The end of the run: he kneels at `x`, his head is buried with his flower, and the flower grows there. */

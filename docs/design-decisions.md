@@ -278,3 +278,23 @@ Measured on 40 things we have not drawn, through the real pipeline (generate, re
 - **Monsters notice him more surely:** a monster's gaze follows the ground, so standing on a mound no longer lifts him out of a low monster's sight; at the edge of its sight it is sure of him in 0.8 s (was 1.2); close by (260 px) it senses him in 1.6 s (was 3), even in the dark.
 - **Through any gate, a plain fade.** The turning world is no longer used.
 - **Breakable stones are bigger and easier to see:** lighter than the ground, with glowing cracks and a soft glow.
+
+## Ten worlds, ten bosses, 20 October 2026
+
+Amin: "Let's have only 10 levels ... harder in each level ... every boss ... has a different characteristic and abilities, and is completely different person ... The last boss, when we defeated, the whole world becomes greener and the flowers comes up and the sun comes up."
+
+- **Ten worlds, then the end.** The run is no longer endless. Each world is harder than the one before in every number: monsters 5 to 15, a longer road, more merged monsters, tougher, quicker, further-sighted, a little darker, more soldiers at the boss (src/game/run.ts LEVELS). His skills still add a little on top.
+- **Ten lands**, one per boss: the five there were, plus the Glass Marsh, the Bone Hills, the Windworn Towers, the Night Orchard and the Dry Heart.
+- **Ten bosses, each its own** (src/game/bosses.ts): its own body from the kit, its own words before, during and after the fight, its own line of help, and its own way of fighting. Every boss can still be beaten without a weapon: let its eye find you, hide to daze it, pull its root.
+  1. The Thirst: the first, simplest. Spits from its second phase.
+  2. The Ash Queen: a burnt tree; fans of three embers.
+  3. The Salt King: salt falls from the sky where you stand.
+  4. The Dust Twins: two heads; hurt, they vanish and rise in front of you; call soldiers.
+  5. The Last Lamp: a street lamp that is all eye; sees far and burns fast.
+  6. The Mire Mother: a mud mound; calls her children and heals while her eye is shut.
+  7. The Hollow Giant: walks at you and stamps waves along the ground; jump them.
+  8. The Storm Crow: its wings blow you back (lie flat to hold on); rain and spit.
+  9. The Thorn Widow: four thorn mouths, wide fans, heals, vanishes.
+  10. The Last Drought: the biggest; a little of everything the others did.
+- **As each boss dies it names the next.** The last one's words are its end: "the rain... I can hear it".
+- **The finale.** Beating the Last Drought and planting the flowers: the night sky turns to day, the moon goes and the sun rises behind the hills, green spreads along the ground from where he stands, grass and flowers come up everywhere, any monster left turns to petals, and the end card says "The world is green again".

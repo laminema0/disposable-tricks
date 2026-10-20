@@ -1,5 +1,6 @@
-// The endless run (WHAT_AMIN_WANTS, redesigns of 17 and 18 October): one road in stretches, each a little
-// harder than the last, until the last petal falls. Detours open inside archway gates and lead back to it.
+// The run (WHAT_AMIN_WANTS, redesigns of 17 and 18 October): one road in stretches, each harder than the last.
+// Ten worlds (Amin, 20 Oct: "only 10 levels ... harder in each level"); the tenth boss falls and the world turns
+// green. Until then, the last petal falling ends it. Detours open inside archway gates and lead back to it.
 // Skills come while playing, chosen by the game, as he earns XP (docs/skills.md); every skill makes the monsters
 // a little stronger too. Pure: no game engine. The scene asks it what a stretch holds and what he has earned.
 
@@ -137,6 +138,51 @@ export function gainXp(run: RunState, xp: number, seed: number, maxPetals: numbe
   return { run: next, skill };
 }
 
+/** The number of worlds. Beating the boss of the last and planting its flowers ends the game: the world is green. */
+export const LAST_LEVEL = 10;
+
+/**
+ * How hard each world is, 1 to 10 (20 Oct). Every number grows: more monsters on a longer road, more of them merged,
+ * tougher (extra hits), quicker and further-sighted, a little less light, more soldiers at the boss. The skills he
+ * earns add a little on top (threat), as before.
+ */
+export interface LevelPlan {
+  monsters: number;
+  screens: number;
+  /** 1 to 3: how many of the monsters are merges (config MERGE_SHARE). */
+  difficulty: number;
+  toughness: number;
+  pace: number;
+  sight: number;
+  /** Light taken away. */
+  dark: number;
+  /** Soldiers the boss calls before the fight. */
+  soldiers: number;
+}
+
+export const LEVELS: LevelPlan[] = [
+  { monsters: 5, screens: 8, difficulty: 1, toughness: 0, pace: 1, sight: 1, dark: 0, soldiers: 2 },
+  { monsters: 6, screens: 8, difficulty: 1, toughness: 0, pace: 1.04, sight: 1.03, dark: 0.02, soldiers: 3 },
+  { monsters: 7, screens: 9, difficulty: 2, toughness: 0, pace: 1.08, sight: 1.06, dark: 0.03, soldiers: 3 },
+  { monsters: 8, screens: 9, difficulty: 2, toughness: 1, pace: 1.1, sight: 1.08, dark: 0.04, soldiers: 4 },
+  { monsters: 9, screens: 10, difficulty: 2, toughness: 1, pace: 1.13, sight: 1.1, dark: 0.06, soldiers: 4 },
+  { monsters: 10, screens: 10, difficulty: 3, toughness: 1, pace: 1.16, sight: 1.12, dark: 0.07, soldiers: 5 },
+  { monsters: 11, screens: 10, difficulty: 3, toughness: 1, pace: 1.19, sight: 1.14, dark: 0.08, soldiers: 5 },
+  { monsters: 12, screens: 11, difficulty: 3, toughness: 2, pace: 1.22, sight: 1.16, dark: 0.09, soldiers: 6 },
+  { monsters: 13, screens: 11, difficulty: 3, toughness: 2, pace: 1.25, sight: 1.18, dark: 0.1, soldiers: 6 },
+  { monsters: 15, screens: 12, difficulty: 3, toughness: 2, pace: 1.28, sight: 1.2, dark: 0.11, soldiers: 7 },
+];
+
+/** How hard this world is. */
+export function levelOf(chapter: number): LevelPlan {
+  return LEVELS[Math.min(LEVELS.length, Math.max(1, chapter)) - 1];
+}
+
+/** True in the last world. */
+export function isLastLevel(chapter: number): boolean {
+  return chapter >= LAST_LEVEL;
+}
+
 /** What a stretch (or a detour off it) holds: the player's settings, made harder as the run goes on. */
 export interface ChapterPlan {
   settings: Settings;
@@ -183,15 +229,16 @@ export function detourIndex(run: RunState): number {
 }
 
 export function planChapter(base: Settings, run: RunState): ChapterPlan {
-  const c = run.chapter;
+  const c = Math.min(LAST_LEVEL, run.chapter);
   const t = threat(run);
   const street = run.stage === 'street';
-  // Harder as he goes on and as he grows: more monsters, more merges (difficulty), a little less light.
-  const difficulty = Math.min(3, 1 + Math.floor((c - 1 + t / 2) / 2) + (street ? 1 : 0));
+  const level = levelOf(c);
+  // Harder in each world (LEVELS), and a little more as he grows: more monsters, more merges, a little less light.
+  const difficulty = Math.min(3, level.difficulty + (street || t >= 6 ? 1 : 0));
   // Each world is a land of its own: its colours, scenery, light and lean (lands.ts).
   const land = landOf(c);
-  // Later worlds lose a little light, never more than 0.12, and never fall below 0.3 (19 Oct: they were too dark).
-  const lightDensity = Math.max(0.3, Math.min(0.9, base.lightDensity - Math.min(0.12, (c - 1) * 0.03) - (street ? 0.1 : 0) + land.light));
+  // Later worlds lose a little light, and never fall below 0.3 (19 Oct: they were too dark).
+  const lightDensity = Math.max(0.3, Math.min(0.9, base.lightDensity - level.dark - (street ? 0.1 : 0) + land.light));
   const weapon = { ...base.weapon };
   weapon.reach = Math.round(weapon.reach * (1 + 0.25 * count(run, 'reach')));
   weapon.speed = Math.round(weapon.speed * (1 + 0.25 * count(run, 'quick')) * 100) / 100;
@@ -207,13 +254,13 @@ export function planChapter(base: Settings, run: RunState): ChapterPlan {
     settings,
     seed,
     // A world (18 Oct): one long road with three detour gates; the ten flowers are spread over all of it.
-    screens: street ? 3 : Math.min(11, 8 + Math.floor(c / 2)),
-    monsters: street ? 3 + c + extra : Math.min(18, 3 + c * 2 + extra),
+    screens: street ? 3 : level.screens,
+    monsters: street ? 3 + Math.ceil(c / 2) + extra : Math.min(18, level.monsters + extra),
     boss: !street && base.enemies.length + base.creatures.length > 0,
     streets: street ? 0 : 3,
-    toughness: Math.floor(t / 3),
-    pace: 1 + 0.05 * t,
-    sight: 1 + 0.03 * t,
+    toughness: level.toughness + Math.floor(t / 4),
+    pace: Math.round((level.pace + 0.03 * t) * 100) / 100,
+    sight: Math.round((level.sight + 0.02 * t) * 100) / 100,
     more: land.more,
     chunks: land.chunks,
   };
@@ -222,7 +269,7 @@ export function planChapter(base: Settings, run: RunState): ChapterPlan {
 /** The gate at the end of a stretch: a detour leads back to the road, a road leads on to the next stretch. */
 export function afterGate(run: RunState, walked: number): RunState {
   if (run.stage === 'street') return { ...run, stage: 'road', returnTo: run.returnTo, distance: run.distance + walked };
-  return { ...run, chapter: run.chapter + 1, stage: 'road', returnTo: undefined, streetsDone: [], found: [], distance: run.distance + walked };
+  return { ...run, chapter: Math.min(LAST_LEVEL, run.chapter + 1), stage: 'road', returnTo: undefined, streetsDone: [], found: [], distance: run.distance + walked };
 }
 
 /** He goes through the detour gate that stands at `x`. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ARENA, BOSS, BOSS_FROM, GROUND_Y } from '../src/game/config';
+import { ARENA, BOSS_FROM, GROUND_Y } from '../src/game/config';
 import { bossDesign, designFor, mergeDesign, mixedCreature } from '../src/game/creatures';
 import { bossFigure, creatureFigure, frameFigures, mergeFigure, mergeKey } from '../src/game/kit';
 import { addArena, buildLevel, hideSpotAt } from '../src/game/level';
@@ -7,6 +7,7 @@ import { MONSTERS, MonsterWorld, type HeroState, type Spawn } from '../src/game/
 import { chooseMerges, chooseKinds, hasBoss, placeMonsters, type MonsterRules } from '../src/game/placement';
 import { inSight } from '../src/game/sight';
 import { ENEMIES, type Enemy } from '../src/settings/schema';
+import { bossOf } from '../src/game/bosses';
 
 const PAIRS: [Enemy, Enemy][] = ENEMIES.flatMap((a, i) => ENEMIES.slice(i + 1).map((b): [Enemy, Enemy] => [a, b]));
 const rules = (over: Partial<MonsterRules> = {}): MonsterRules => ({ enemies: ['crawler', 'thorn', 'flyer'], difficulty: 2, twist: 'none', seed: 7, ...over });
@@ -111,7 +112,7 @@ describe('as you go', () => {
     for (const spawn of spawns.slice(0, -1)) expect(spawn.x).toBeLessThan(level.arena!.x0);
     // Two places to hide, inside the reach of its eye.
     expect(hideSpotAt(level, level.arena!.x0 + ARENA.grass[0] + 10)?.kind).toBe('grass');
-    expect(level.arena!.bossX - (level.arena!.x0 + ARENA.rock[0])).toBeLessThan(BOSS.range);
+    expect(level.arena!.bossX - (level.arena!.x0 + ARENA.rock[0])).toBeLessThan(bossOf(1).range);
   });
 });
 
@@ -151,18 +152,18 @@ describe('the boss', () => {
       world.step(1 / 60, hero({ x: 990, light: 0 }));
       expect(boss.pulled).toBe(true);
       boss.pulled = false;
-      expect(boss.hitsLeft).toBe(BOSS.hits - (round + 1) * BOSS.perPhase);
+      expect(boss.hitsLeft).toBe(bossOf(1).hits - (round + 1) * bossOf(1).perPhase);
       run(world, 1.2, hero({ x: 600, lying: true, hidden: true, light: 0 }));
     }
     expect(boss.alive).toBe(false);
   });
 
-  it('with a weapon: nine strikes fell it, never one, and it gets harder on the way', () => {
+  it('with a weapon: a few strikes fell it, never one, and it gets harder on the way', () => {
     const { world, boss } = fight();
     const zone = { x0: 960, x1: 1040, y0: GROUND_Y - 120, y1: GROUND_Y };
     world.strike(zone, true, 1, 1);
     expect(boss.alive).toBe(true);
-    expect(boss.hitsLeft).toBe(BOSS.hits - 2);
+    expect(boss.hitsLeft).toBe(bossOf(1).hits - 2);
     for (let id = 2; boss.alive && id < 20; id++) world.strike(zone, false, id, 1);
     expect(boss.alive).toBe(false);
     const again = fight();

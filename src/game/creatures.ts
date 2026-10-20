@@ -10,7 +10,8 @@ import type { Attack, Body, Creature, Enemy, MoveOf, Recipe } from '../settings/
 import { beastScale } from './beasts';
 import { drawingFor } from './generated';
 import { BOSS } from './config';
-import { BOSS_POINTS, bossFigure, creatureFigure, mergeFigure, mergeKey, type Figure } from './kit';
+import { bossBody, creatureFigure, mergeFigure, mergeKey, type Figure } from './kit';
+import { bossOf, type BossProfile } from './bosses';
 import { MONSTERS, type MonsterSpec } from './monsters';
 import { SIGHTS, type SightShape } from './sight';
 
@@ -34,6 +35,9 @@ export interface Design {
   /** Its name, for a merge ("crawler+flyer") or the boss. */
   name?: string;
   boss?: true;
+  /** The boss's own ways (bosses.ts), and the mouth it spits from. */
+  profile?: BossProfile;
+  mouth?: { ahead: number; up: number };
 }
 
 /** The five named monsters, written as the same blocks. */
@@ -236,17 +240,21 @@ export function mergeDesign(a: Enemy, b: Enemy): Design {
   };
 }
 
-/** The boss. It stands still; what it does is in monsters.ts. */
-export function bossDesign(): Design {
-  const figure = bossFigure();
+/** The boss of this world (bosses.ts): its own body and its own ways; what it does is in monsters.ts. */
+export function bossDesign(chapter = 1): Design {
+  const profile = bossOf(chapter);
+  const { figure, eye, mouth } = bossBody(profile.body);
   return {
     brain: 'watcher',
     boss: true,
-    name: 'boss',
+    // Named by its body: each boss's picture is made and kept under its own name.
+    name: `boss-${profile.body}`,
     figure,
     sight: undefined,
-    eye: BOSS_POINTS.eye,
+    eye,
+    mouth,
+    profile,
     speed: 0,
-    spec: { ...MONSTERS.watcher, hits: BOSS.hits, flowers: BOSS.flowers, halfW: figure.halfW, height: figure.height, sight: BOSS.range, touch: false },
+    spec: { ...MONSTERS.watcher, hits: profile.hits, flowers: BOSS.flowers, halfW: figure.halfW, height: figure.height, sight: profile.range, touch: false },
   };
 }
