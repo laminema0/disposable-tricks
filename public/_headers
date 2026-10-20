@@ -1,0 +1,26 @@
+# Response headers for the host (Cloudflare Pages reads this file; Netlify reads the same format).
+# The content policy lets the app load from its own address only: no third-party scripts,
+# fonts, images or connections. It backs up what the privacy page says.
+# frame-ancestors 'none' stops other sites from showing the game inside their own page.
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; media-src 'self' data: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff
+  Cross-Origin-Opener-Policy: same-origin
+  Strict-Transport-Security: max-age=31536000
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), browsing-topics=()
+
+# File names in assets/ change whenever their content does, so they can be kept for a year.
+# Phaser has a file of its own there, so an update of the game does not make phones fetch it again.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Icons and the manifest keep their names, so phones check them again after a day.
+/icon*
+  Cache-Control: public, max-age=86400
+/apple-touch-icon.png
+  Cache-Control: public, max-age=86400

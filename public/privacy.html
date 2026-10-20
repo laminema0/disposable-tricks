@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#070a14" />
+    <meta name="description" content="Disposable Tricks has no accounts, no cookies and no tracking. What goes to an AI while you make a game, and what stays on your phone." />
+    <title>Privacy · Disposable Tricks</title>
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <style>
+      /* Same type and rhythm as the app: Newsreader and Instrument Sans, spacing of 8, 16, 24.
+         Both fonts come from this site; nothing is loaded from anywhere else. */
+      @font-face {
+        font-family: 'Newsreader';
+        src: url('fonts/newsreader-latin-wght-normal.woff2') format('woff2');
+        font-weight: 200 800;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'Instrument Sans';
+        src: url('fonts/instrument-sans-latin-wght-normal.woff2') format('woff2');
+        font-weight: 400 700;
+        font-display: swap;
+      }
+      :root {
+        --ink: #f3efe6;
+        --ink-dim: rgba(243, 239, 230, 0.7);
+        --line: rgba(243, 239, 230, 0.18);
+        --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+        --sans: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+        color-scheme: dark;
+      }
+      html {
+        background: #070a14;
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
+        box-sizing: border-box;
+        padding: max(16px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+          max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+        background: linear-gradient(180deg, #17153a, #070a14 480px);
+        color: var(--ink);
+        font: 15px/24px var(--sans);
+      }
+      .frame {
+        max-width: 920px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 208px minmax(0, 1fr);
+        gap: 24px;
+      }
+      .rail {
+        position: sticky;
+        top: max(16px, env(safe-area-inset-top));
+        align-self: start;
+      }
+      .brand {
+        margin: 0 0 16px;
+        font: 500 20px/32px var(--serif);
+        white-space: nowrap;
+      }
+      .back {
+        display: inline-flex;
+        align-items: center;
+        height: 44px;
+        padding: 0 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      a:focus-visible {
+        outline: 2px solid #ffd9a0;
+        outline-offset: 2px;
+      }
+      main {
+        max-width: 560px;
+      }
+      h1 {
+        margin: 0 0 16px;
+        font: 500 24px/32px var(--serif);
+      }
+      .lead {
+        margin: 0 0 24px;
+        font: 400 20px/32px var(--serif);
+      }
+      dl {
+        margin: 0;
+      }
+      dt {
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+        font: 500 17px/24px var(--serif);
+      }
+      dd {
+        margin: 0 0 16px;
+        color: var(--ink-dim);
+      }
+      .date {
+        margin: 0;
+        padding-top: 16px;
+        border-top: 1px solid var(--line);
+        font-size: 13px;
+        color: var(--ink-dim);
+      }
+      /* A phone held upright, or any narrow window: the rail goes on top. */
+      @media (max-width: 599px) {
+        .frame {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 16px;
+        }
+        .rail {
+          position: static;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .brand {
+          margin: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <nav class="rail">
+        <p class="brand">Disposable Tricks</p>
+        <a class="back" id="back" href="./">Back to the game</a>
+      </nav>
+      <main>
+        <h1>Privacy</h1>
+        <p class="lead">Disposable Tricks knows nothing about you and keeps nothing about you.</p>
+        <dl>
+          <dt>No sign-in</dt>
+          <dd>There are no accounts. You are never asked for a name, an email address or a password.</dd>
+
+          <dt>No personal data</dt>
+          <dd>The app does not ask for any and does not collect any.</dd>
+
+          <dt>No cookies, no tracking</dt>
+          <dd>
+            The app sets no cookies. It has no analytics and no advertising. It keeps only two things in your
+            browser, on your own device, and never sends them anywhere: how loud you set the music and the sounds,
+            and any game you press Save on, under "Saved". You can delete each saved game there, and clearing your
+            browser's site data removes everything.
+          </dd>
+
+          <dt>The game runs on your phone</dt>
+          <dd>The game itself runs in your browser. The way you play is not sent anywhere.</dd>
+
+          <dt>What goes to an AI while you make a game</dt>
+          <dd>
+            While you make a game, the choices you have made so far and anything you write in the text field are
+            sent to our server, which passes them to an AI service (Groq or Cloudflare Workers AI) to turn them
+            into options and game settings. Nothing else is sent with them: no name, no account, no cookie. We do
+            not store what you write and it is never part of a share link. The AI service receives the text and
+            handles it under its own terms, so do not write anything personal. With the AI switched off, or when
+            it does not answer, the app reads your words itself and nothing is sent.
+          </dd>
+
+          <dt>The share link holds only the game</dt>
+          <dd>
+            A link carries the settings of one game: its mood, scenery, monsters, weapon and twist, any shapes composed for it, its colours, its
+            name and the number its level is built from. They sit after the # in the link, a part that browsers do not send
+            to a server. The link says nothing about who made it.
+          </dd>
+
+          <dt>Nothing from other companies</dt>
+          <dd>
+            The pictures, sounds and fonts all come from this site. Your browser loads nothing from any other
+            company; the AI service above is only ever reached through our own server.
+          </dd>
+
+          <dt>What no website can avoid</dt>
+          <dd>
+            To deliver these pages, the company that hosts them (Cloudflare) receives the internet address of the
+            device asking, as happens with every page you open. The app itself never sees it and keeps no record
+            of it.
+          </dd>
+
+          <dt>Ages 16 and up</dt>
+          <dd>Disposable Tricks is made for people aged 16 and older.</dd>
+        </dl>
+        <p class="date">Last changed on 19 October 2026.</p>
+      </main>
+    </div>
+    <script src="back.js"></script>
+  </body>
+</html>

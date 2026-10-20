@@ -1,0 +1,12 @@
+# Cloudflare Pages settings, read by "npm run deploy" and by Cloudflare's own builds.
+# The site is the dist folder that "npm run build" makes; functions/ is the AI function at /api/make.
+# Nothing here deploys by itself, and the keys are NOT in this file: they are secrets (DEPLOY.md, step 4).
+name = "disposable-tricks"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-10-12"
+
+[vars]
+# Which AI services the function tries, in order. One with no key is skipped.
+AI_ORDER = "groq,cloudflare"
+# The most real AI calls per minute, for all players together. Protects the free limits.
+MAX_CALLS_PER_MINUTE = "8"

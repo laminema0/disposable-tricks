@@ -1,0 +1,11 @@
+# Settings for hosting the server function as a Cloudflare Worker (free plan).
+# The keys are NOT in this file. They are added as secrets: see README.md.
+name = "disposable-tricks-ai"
+main = "src/worker.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+# The address of the game site, so only it may call this function from a browser.
+# Fill this in when the site has an address, for example "https://disposabletricks.example".
+ALLOWED_ORIGIN = ""
+AI_ORDER = "groq,cloudflare"

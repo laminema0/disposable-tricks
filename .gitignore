@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.claude/
+
+# Cloudflare: local state of "wrangler pages dev", and keys for it (never uploaded).
+.wrangler/
+.dev.vars
+
+# Keys never go to GitHub (server/.env is also ignored by server/.gitignore).
+.env
+**/.env
+.env.local
+.env.*.local

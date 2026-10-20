@@ -1,0 +1,733 @@
+<!doctype html>
+<!--
+  The locked frame a "trick" runs in. A trick is a small script written by an AI for one wish.
+  It is untrusted. This page is loaded in an iframe with sandbox="allow-scripts" and nothing else,
+  so it has no origin: no cookies, no storage, no access to the page around it.
+  The policy below also takes away the network: nothing can be fetched or sent from here.
+  The script itself does not even run on this page. It runs in a worker that this page starts and
+  can stop at any moment, and it only ever sees the small "game" object described in
+  src/trick/reference.ts. This page draws what the worker reports and passes on the player's input.
+  It talks to the app outside only by messages.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' blob:; worker-src blob:; style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <style>
+      html, body { margin: 0; height: 100%; background: #070a14; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+      canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+    </style>
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+
+    <!-- The runtime: the whole world a trick can touch. Plain text here; it becomes the worker's code.
+         The unit tests and the trial read this same block, so there is one copy of it. -->
+    <script id="runtime" type="text/plain">
+var W = 800, H = 400, GROUND = 330, MAX_SPRITES = 300;
+var VEHICLES = ['bike', 'car', 'ship', 'wings'];
+var MONSTERS = ['crawler', 'flyer', 'thorn', 'stalker', 'watcher'];
+var PETALS = ['#f2f4fa', 'accent', 'light', '#ff9db0', '#a8e6cf'];
+
+// A monster's kind: one of the five, two of them joined with a plus sign, or "boss".
+function monsterKind(kind) {
+  if (kind === 'boss') return 'boss';
+  var parts = String(kind).split('+');
+  if (parts.length === 2 && parts[0] !== parts[1] && MONSTERS.indexOf(parts[0]) >= 0 && MONSTERS.indexOf(parts[1]) >= 0) return parts.sort().join('+');
+  return MONSTERS.indexOf(kind) >= 0 ? kind : 'crawler';
+}
+
+function boot(trick, seed) {
+  var sprites = [];
+  var updates = [];
+  var sounds = [];
+  var state = { over: null, text: '', camera: 0, time: 0, scene: 'road', dark: 0 };
+  var input = { left: false, right: false, up: false, down: false, action: false, held: false, x: 0, y: 0 };
+  var s0 = (seed >>> 0) || 1;
+  function random() {
+    s0 = (s0 + 0x6d2b79f5) >>> 0;
+    var t = s0;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  function num(v, d) { return typeof v === 'number' && isFinite(v) ? v : d; }
+  function add(o) {
+    o = o || {};
+    var s = {
+      shape: o.shape === 'circle' || o.shape === 'tri' || o.shape === 'flower' ? o.shape : 'box',
+      x: num(o.x, 0), y: num(o.y, 0), w: num(o.w, 20), h: num(o.h, 20),
+      vx: num(o.vx, 0), vy: num(o.vy, 0), gravity: num(o.gravity, 0),
+      color: typeof o.color === 'string' ? o.color : 'hero',
+      tag: typeof o.tag === 'string' ? o.tag : '',
+      glow: !!o.glow, fixed: !!o.fixed, alive: true, kind: '', face: 1, life: 0
+    };
+    s.remove = function () { s.alive = false; };
+    // Too many things on screen: the new one is made but never shown, so the script does not break.
+    if (sprites.length < MAX_SPRITES) sprites.push(s); else s.alive = false;
+    return s;
+  }
+  // Our own art: the hero with his flower, the five monsters, lights. Drawn by the page, not by the script.
+  function special(shape, o, w, h, tag) {
+    o = o || {};
+    var s = add({ x: o.x, y: o.y, w: num(o.w, w), h: num(o.h, h), vx: o.vx, vy: o.vy, gravity: o.gravity, tag: typeof o.tag === 'string' ? o.tag : tag, fixed: o.fixed });
+    s.shape = shape;
+    s.face = o.face === -1 ? -1 : 1;
+    return s;
+  }
+  var game = {
+    width: W, height: H, ground: GROUND,
+    score: 0, lives: 3,
+    input: input,
+    add: add,
+    hero: function (o) {
+      o = o || {};
+      var s = special('hero', o, 44, 84, 'hero');
+      s.kind = VEHICLES.indexOf(o.vehicle) >= 0 ? o.vehicle : '';
+      if (s.kind === 'car' && !o.w) { s.w = 84; s.h = 52; }
+      if (s.kind === 'bike' && !o.w) { s.w = 60; s.h = 60; }
+      if (s.kind === 'ship' && !o.w) { s.w = 60; s.h = 40; }
+      if (s.kind === 'wings' && !o.w) { s.w = 70; s.h = 56; }
+      return s;
+    },
+    monster: function (o) {
+      o = o || {};
+      var s = special('monster', o, 44, 40, 'monster');
+      s.kind = monsterKind(o.kind);
+      // A merge of two kinds ("crawler+flyer"), or the boss: larger than the five.
+      if (s.kind === 'boss' && !o.h) { s.w = 110; s.h = 210; }
+      else if (s.kind.indexOf('+') > 0 && !o.h) {
+        var tall = s.kind.indexOf('stalker') >= 0 || s.kind.indexOf('thorn') >= 0;
+        s.w = tall ? 56 : 76; s.h = tall ? 112 : 68;
+      }
+      if (s.kind === 'stalker' && !o.h) { s.w = 30; s.h = 96; }
+      if (s.kind === 'thorn' && !o.h) { s.w = 30; s.h = 70; }
+      if (s.kind === 'flyer' && !o.h) { s.w = 56; s.h = 30; }
+      return s;
+    },
+    light: function (x, y, r) { var d = num(r, 120) * 2; var s = add({ x: x, y: y, w: d, h: d, tag: 'light' }); s.shape = 'light'; return s; },
+    burst: function (x, y) {
+      // A flash of light, then flowers thrown outward that fall and fade.
+      var flash = add({ x: num(x, 0), y: num(y, 0), w: 220, h: 220, tag: '__flash' });
+      flash.shape = 'light'; flash.life = 0.22;
+      for (var i = 0; i < 20; i++) {
+        var size = 9 + random() * 9;
+        var p = add({ shape: 'flower', x: num(x, 0), y: num(y, 0), w: size, h: size, vx: (random() - 0.5) * 420, vy: -80 - random() * 300, gravity: 560, color: PETALS[i % PETALS.length], tag: '__petal' });
+        p.life = 0.8 + random() * 0.7;
+      }
+      if (sounds.length < 8) sounds.push('pick');
+    },
+    dark: function (amount) { state.dark = Math.max(0, Math.min(0.85, num(amount, 0))); },
+    find: function (tag) { return sprites.filter(function (s) { return s.alive && s.tag === tag; }); },
+    hits: function (a, b) {
+      if (!a || !b || !a.alive || !b.alive) return false;
+      return Math.abs(a.x - b.x) * 2 < a.w + b.w && Math.abs(a.y - b.y) * 2 < a.h + b.h;
+    },
+    onUpdate: function (fn) { if (typeof fn === 'function' && updates.length < 20) updates.push(fn); },
+    random: random,
+    say: function (text) { state.text = String(text).slice(0, 46); },
+    sound: function (name) { if (sounds.length < 8) sounds.push(String(name).slice(0, 12)); },
+    scene: function (name) { state.scene = ['road', 'sky', 'space', 'room'].indexOf(name) >= 0 ? name : 'road'; },
+    // The older way of asking for no ground: a plain room seen from above.
+    backdrop: function (on) { if (on === false && state.scene === 'road') state.scene = 'room'; },
+    camera: function (x) { state.camera = num(x, 0); },
+    win: function () { if (!state.over) state.over = 'won'; },
+    lose: function () { if (!state.over) state.over = 'lost'; }
+  };
+  Object.defineProperty(game, 'time', { get: function () { return state.time; } });
+
+  trick(game);
+
+  return {
+    setInput: function (i) { for (var k in input) if (k in i) input[k] = i[k]; },
+    step: function (dt) {
+      if (state.over) return;
+      state.time += dt;
+      for (var u = 0; u < updates.length; u++) updates[u](dt);
+      for (var i = 0; i < sprites.length; i++) {
+        var s = sprites[i];
+        s.vy = num(s.vy, 0) + num(s.gravity, 0) * dt;
+        s.x = num(s.x, 0) + num(s.vx, 0) * dt;
+        s.y = num(s.y, 0) + s.vy * dt;
+        if (s.life > 0) { s.life -= dt; if (s.life <= 0) s.alive = false; }
+      }
+      if (sprites.some(function (s) { return !s.alive; })) sprites = sprites.filter(function (s) { return s.alive; });
+      input.action = false;
+    },
+    frame: function () {
+      var list = [];
+      for (var i = 0; i < sprites.length; i++) {
+        var s = sprites[i];
+        list.push([s.shape, Math.round(s.x), Math.round(s.y), Math.round(num(s.w, 20)), Math.round(num(s.h, 20)), String(s.color).slice(0, 9), s.glow ? 1 : 0, s.fixed ? 1 : 0, String(s.kind).slice(0, 16), s.face === -1 ? -1 : 1]);
+      }
+      var out = { sprites: list, text: state.text, score: Math.round(num(game.score, 0)), lives: Math.max(0, Math.min(5, Math.round(num(game.lives, 0)))), camera: Math.round(state.camera), over: state.over, scene: state.scene, dark: state.dark, sounds: sounds };
+      sounds = [];
+      return out;
+    }
+  };
+}
+
+// One pretend play-through, as fast as it will go. `scripted` false means nobody touches anything.
+function playThrough(trick, seed, frames, scripted) {
+  var rt;
+  try { rt = boot(trick, seed); } catch (e) { return { ok: false, message: 'It broke while starting: ' + (e && e.message ? e.message : e) }; }
+  var first = '', last = '', seen = 0, changed = false, score0 = null, lives0 = null, moved = false, over = null, overAt = -1;
+  for (var f = 0; f < frames; f++) {
+    var beat = Math.floor(f / 45) % 4;
+    if (scripted) rt.setInput({ left: beat === 2, right: beat === 0 || beat === 1, up: f % 70 === 30, down: f % 110 === 80, action: f % 25 === 10, held: beat !== 3, x: 200 + (f * 3) % 400, y: 120 + (f * 2) % 200 });
+    try { rt.step(1 / 60); } catch (e) { return { ok: false, message: 'It broke while running: ' + (e && e.message ? e.message : e) }; }
+    var frame = rt.frame();
+    last = JSON.stringify(frame.sprites);
+    if (f === 0) { first = last; score0 = frame.score; lives0 = frame.lives; } else if (last !== first) changed = true;
+    if (frame.score !== score0 || frame.lives !== lives0) moved = true;
+    seen = Math.max(seen, frame.sprites.length);
+    if (frame.over && !over) { over = frame.over; overAt = f; }
+    if (over) break;
+  }
+  return { ok: true, message: '', seen: seen, changed: changed, moved: moved, over: over, overAt: overAt, last: last };
+}
+
+// The test before anyone plays. First: does it run at all? Then: is there a game in it?
+// It passes when nothing throws, something is on screen, the game does not end by itself in
+// the first two seconds, what the player does changes something, and something can be
+// scored, won or lost.
+function simulate(trick, seed) {
+  var played = playThrough(trick, seed, 360, true);
+  if (!played.ok) return played;
+  if (played.over && played.overAt < 120) return { ok: false, message: 'The game ended by itself after ' + (played.overAt / 60).toFixed(1) + ' seconds (' + played.over + '). It must last at least a few seconds.' };
+  if (played.seen === 0) return { ok: false, message: 'Nothing was drawn. Use game.add or game.hero to put things on screen.' };
+  if (!played.changed) return { ok: false, message: 'Nothing moved or changed in six seconds, with every input tried. Use game.onUpdate and game.input.' };
+  var idle = playThrough(trick, seed, 360, false);
+  if (idle.ok && idle.last === played.last && idle.over === played.over) return { ok: false, message: 'What the player does changes nothing: the screen is the same with input and without. Read game.input in game.onUpdate and move the player with it.' };
+  var long = playThrough(trick, seed, 2400, true);
+  if (!long.ok) return long;
+  if (!long.moved && !long.over) return { ok: false, message: 'In forty seconds of play nothing was scored, no life was lost and the game was neither won nor lost. Make sure things can really reach the player, and that hits, pickups and the goal are checked with game.hits.' };
+  return { ok: true, message: '' };
+}
+</script>
+
+    <script>
+      (function () {
+        'use strict';
+        // The same list as TRICK_PARAMS in src/trick/check.ts: names a trick sees as empty.
+        var PARAMS = 'game, self, globalThis, window, document, fetch, XMLHttpRequest, WebSocket, EventSource, importScripts, postMessage, close, navigator, location, indexedDB, caches, Worker, setTimeout, setInterval, requestAnimationFrame, onmessage';
+        var runtime = document.getElementById('runtime').textContent;
+        var canvas = document.getElementById('view');
+        var ctx = canvas.getContext('2d');
+        var W = 800, H = 400, GROUND = 330;
+        var palette = { far: '#17153a', mid: '#1f1c48', stage: '#070a14', hero: '#6b7388', light: '#ffd9a0', accent: '#ffe66d' };
+        var worker = null, frame = null, playing = false, paused = false, waiting = false, last = 0, missed = 0, over = false;
+        // The maker's preview: the backdrop, the hero and a few monsters, with no game running.
+        var preview = null;
+        var input = { left: false, right: false, up: false, down: false, action: false, held: false, x: 0, y: 0 };
+        var audio = null;
+        var parentWindow = window.parent;
+        var tell = function (message) { parentWindow.postMessage(message, '*'); };
+
+        var BOOTSTRAP = [
+          'var __rt = null;',
+          'self.onmessage = function (e) {',
+          '  var m = e.data;',
+          '  try {',
+          '    if (m.type === "check") { self.postMessage({ type: "checked", result: simulate(__trick, m.seed) }); return; }',
+          '    if (m.type === "begin") { __rt = boot(__trick, m.seed); self.postMessage({ type: "frame", frame: __rt.frame() }); return; }',
+          '    if (m.type === "tick" && __rt) { __rt.setInput(m.input); __rt.step(m.dt); self.postMessage({ type: "frame", frame: __rt.frame() }); }',
+          '  } catch (err) { self.postMessage({ type: "error", message: String(err && err.message ? err.message : err) }); }',
+          '};',
+        ].join('\n');
+
+        function stop() {
+          if (worker) worker.terminate();
+          worker = null;
+          playing = false;
+        }
+
+        function startWorker(code, onMessage, onError) {
+          stop();
+          var source = runtime + '\nvar __trick = function (' + PARAMS + ') {\n"use strict";\n' + code + '\n};\n' + BOOTSTRAP;
+          worker = new Worker(URL.createObjectURL(new Blob([source], { type: 'text/javascript' })));
+          worker.onmessage = function (e) { onMessage(e.data); };
+          worker.onerror = function (e) { if (e.preventDefault) e.preventDefault(); onError('It could not be read: ' + (e.message || 'syntax error')); };
+        }
+
+        // ---- the test run -------------------------------------------------------------
+        function check(code, seed) {
+          var done = false;
+          var finish = function (ok, message) {
+            if (done) return;
+            done = true;
+            clearTimeout(timer);
+            stop();
+            tell({ type: 'checked', ok: ok, message: message });
+          };
+          // A script that never comes back is stopped from here. It cannot stop this page.
+          var timer = setTimeout(function () { finish(false, 'It froze: the test run did not finish in 3 seconds. Avoid loops that never end.'); }, 3000);
+          startWorker(code, function (m) {
+            if (m.type === 'checked') finish(m.result.ok, m.result.message);
+            else if (m.type === 'error') finish(false, m.message);
+          }, function (message) { finish(false, message); });
+          worker.postMessage({ type: 'check', seed: seed });
+        }
+
+        // ---- playing --------------------------------------------------------------------
+        // Sizes of the hero in each vehicle and of each monster, as the runtime gives them.
+        var HERO_SIZE = { car: [84, 52], bike: [60, 60], ship: [60, 40], wings: [70, 56], '': [44, 84] };
+        var BEAST_SIZE = { crawler: [44, 40], stalker: [30, 96], thorn: [30, 70], flyer: [56, 30], watcher: [44, 40] };
+        function previewFrame() {
+          var scale = Math.min(canvas.width / W, canvas.height / H), ox = (canvas.width - W * scale) / 2;
+          var hx = Math.max(40, (preview.at * canvas.width - ox) / scale);
+          var vehicle = HERO_SIZE[preview.vehicle] ? preview.vehicle : '';
+          var size = HERO_SIZE[vehicle];
+          var air = preview.scene === 'sky', top = preview.scene === 'space' || preview.scene === 'room';
+          var hy = air ? 190 : top ? 255 : GROUND - size[1] / 2;
+          var sprites = [['hero', hx, hy, size[0], size[1], 'hero', 0, 0, vehicle, 1]];
+          (preview.monsters || []).slice(0, 3).forEach(function (kind, i) {
+            var b = BEAST_SIZE[kind] || (kind === 'boss' ? [110, 210] : kind.indexOf('+') > 0 ? (/stalker|thorn/.test(kind) ? [56, 112] : [76, 68]) : [44, 40]);
+            var flies = kind === 'flyer' || air || top;
+            // Seen from above they wait over him; otherwise they stand in front of him.
+            var y = top ? 90 + i * 60 : flies ? 150 + i * 40 : GROUND - b[1] / 2;
+            var x = top ? hx - 10 + i * 90 : hx + 110 + i * 95;
+            sprites.push(['monster', x, y, b[0], b[1], 'dark', 0, 0, kind, -1]);
+          });
+          return { sprites: sprites, camera: 0, scene: preview.scene, dark: 0, score: 0, lives: 5, text: '', over: null, preview: true, sounds: [] };
+        }
+
+        function begin(code, seed) {
+          preview = null;
+          over = false; paused = false; waiting = true; missed = 0; frame = null;
+          startWorker(code, function (m) {
+            if (m.type === 'frame') { frame = m.frame; waiting = false; missed = 0; playSounds(m.frame.sounds); }
+            else if (m.type === 'error') fail(m.message);
+          }, fail);
+          worker.postMessage({ type: 'begin', seed: seed });
+          playing = true;
+          last = performance.now();
+          requestAnimationFrame(loop);
+        }
+        function fail(message) {
+          if (over) return;
+          over = true;
+          stop();
+          tell({ type: 'broke', message: String(message).slice(0, 200) });
+        }
+
+        function loop(now) {
+          if (!playing) return;
+          requestAnimationFrame(loop);
+          if (preview) frame = previewFrame();
+          var dt = Math.min(0.05, (now - last) / 1000);
+          last = now;
+          draw();
+          if (!frame || paused || over) return;
+          if (frame.over) {
+            over = true;
+            tell({ type: 'over', won: frame.over === 'won', score: frame.score });
+            return;
+          }
+          // One step at a time: the next is only asked for when the last has come back.
+          if (waiting) {
+            missed += dt;
+            if (missed > 2.5) fail('It froze while playing.');
+            return;
+          }
+          waiting = true;
+          worker.postMessage({ type: 'tick', dt: dt, input: input });
+          input.action = false;
+          input.up = keys.up;
+          input.down = keys.down;
+        }
+
+        // ---- drawing: flat shapes in the colours of the game -----------------------------
+        var HEX = /^#[0-9a-fA-F]{6}$/;
+        function colour(name) {
+          if (HEX.test(name)) return name;
+          if (name === 'dark' || name === 'enemy') return '#05060c';
+          if (name === 'white') return '#f4f4ee';
+          return palette[name] || palette.hero;
+        }
+        // ---- our own art: the hero with his flower, his vehicles, the monsters ---------------
+        function drawFlower(x, y, r, fill, petals) {
+          ctx.fillStyle = fill;
+          for (var i = 0; i < petals; i++) {
+            var a = -Math.PI / 2 + i * Math.PI * 2 / 5;
+            ctx.beginPath(); ctx.arc(x + Math.cos(a) * r * 0.62, y + Math.sin(a) * r * 0.62, r * 0.46, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        function drawLight(x, y, r, strength) {
+          // A light never swallows the screen: big ones are capped and made fainter, with a soft middle.
+          if (r > 150) { strength *= 150 / r; r = 150; }
+          var glow = ctx.createRadialGradient(x, y, 0, x, y, r);
+          glow.addColorStop(0, palette.light + Math.round(strength * 255).toString(16).padStart(2, '0'));
+          glow.addColorStop(0.35, palette.light + Math.round(strength * 0.45 * 255).toString(16).padStart(2, '0'));
+          glow.addColorStop(1, palette.light + '00');
+          ctx.fillStyle = glow; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+        }
+        // The boy: big round head, one pale eye, a flower on top, a small body and a cape. (x, y) is his middle.
+        var BOY = {
+          cape: new Path2D('M200 200 C176 202 160 226 152 266 C146 300 128 330 96 346 Q86 351 100 352 Q118 358 136 352 Q154 346 170 352 Q180 355 190 352 C186 328 188 300 190 280 L192 208 Z'),
+          body: new Path2D('M190 204 Q206 198 220 206 L226 280 Q206 290 186 280 Z'),
+          footBack: new Path2D('M176 340 h22 q12 2 14 12 h-38 z'),
+          footFront: new Path2D('M216 340 h22 q14 2 16 12 h-40 z'),
+          leaf: new Path2D('M197 80 q-16 -8 -20 4 q12 6 20 -4 z')
+        };
+        function dot(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+        // (x, feet) is where he stands, or where he sits when `seated`. `tall` is his full height.
+        function drawBoy(x, feet, tall, face, seated) {
+          var u = tall / 321, base = palette.hero, back = '#586074';
+          ctx.save();
+          ctx.translate(x, feet); ctx.scale(u * face, u); ctx.translate(-206, seated ? -285 : -352);
+          ctx.lineCap = 'round';
+          if (!seated) {
+            ctx.fillStyle = back; ctx.fill(BOY.cape);
+            ctx.strokeStyle = back; ctx.lineWidth = 17;
+            ctx.beginPath(); ctx.moveTo(200, 278); ctx.lineTo(186, 340); ctx.stroke(); ctx.fill(BOY.footBack);
+            ctx.strokeStyle = base; ctx.fillStyle = base;
+            ctx.beginPath(); ctx.moveTo(208, 278); ctx.lineTo(226, 340); ctx.stroke(); ctx.fill(BOY.footFront);
+          }
+          ctx.fillStyle = base; ctx.fill(BOY.body);
+          ctx.strokeStyle = base; ctx.lineWidth = 14;
+          ctx.beginPath(); ctx.moveTo(206, 216); ctx.quadraticCurveTo(226, 236, 236, 260); ctx.stroke(); dot(238, 264, 10);
+          ctx.strokeStyle = back; ctx.lineWidth = 5;
+          ctx.beginPath(); ctx.moveTo(198, 92); ctx.quadraticCurveTo(194, 74, 206, 60); ctx.stroke();
+          ctx.fillStyle = back; ctx.fill(BOY.leaf);
+          ctx.fillStyle = '#f2f4fa';
+          dot(208, 40, 9); dot(221, 50, 9); dot(216, 65, 9); dot(200, 65, 9); dot(195, 50, 9);
+          ctx.fillStyle = base; dot(208, 54, 7);
+          dot(200, 146, 58);
+          ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.ellipse(236, 152, 8, 13, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.restore();
+        }
+        function wheel(x, y, r) { ctx.fillStyle = '#05060c'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = palette.mid; ctx.beginPath(); ctx.arc(x, y, r * 0.35, 0, Math.PI * 2); ctx.fill(); }
+        function drawHero(x, y, w, h, vehicle, face) {
+          var feet = y + h / 2;
+          if (vehicle === 'car') {
+            drawBoy(x - face * w * 0.1, feet - h * 0.4, h * 1.8, face, true);
+            ctx.fillStyle = '#586074';
+            ctx.beginPath(); ctx.roundRect(x - w / 2, feet - h * 0.5, w, h * 0.34, 8); ctx.fill();
+            ctx.fillRect(x + face * w * 0.5 - (face > 0 ? 0 : 10), feet - h * 0.42, 10, 5);
+            wheel(x - w * 0.28, feet - h * 0.14, h * 0.15); wheel(x + w * 0.28, feet - h * 0.14, h * 0.15);
+          } else if (vehicle === 'bike') {
+            drawBoy(x, feet - h * 0.34, h * 1.5, face, true);
+            ctx.strokeStyle = '#586074'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(x - w * 0.32, feet - h * 0.2); ctx.lineTo(x, feet - h * 0.36); ctx.lineTo(x + w * 0.32, feet - h * 0.2); ctx.moveTo(x, feet - h * 0.36); ctx.lineTo(x + face * w * 0.26, feet - h * 0.5); ctx.stroke();
+            wheel(x - w * 0.32, feet - h * 0.2, h * 0.2); wheel(x + w * 0.32, feet - h * 0.2, h * 0.2);
+          } else if (vehicle === 'ship') {
+            ctx.fillStyle = '#586074';
+            ctx.beginPath(); ctx.moveTo(x, y - h / 2); ctx.lineTo(x + w / 2, y + h / 2); ctx.lineTo(x, y + h * 0.25); ctx.lineTo(x - w / 2, y + h / 2); ctx.closePath(); ctx.fill();
+            drawBoy(x, y + h * 0.55, h * 1.7, 1, true);
+          } else if (vehicle === 'wings') {
+            ctx.fillStyle = '#586074';
+            ctx.beginPath(); ctx.moveTo(x, y + 4); ctx.lineTo(x - w * 0.75, y - h * 0.45); ctx.lineTo(x - w * 0.5, y); ctx.lineTo(x - w * 0.62, y + h * 0.2); ctx.closePath(); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(x, y + 4); ctx.lineTo(x + w * 0.75, y - h * 0.45); ctx.lineTo(x + w * 0.5, y); ctx.lineTo(x + w * 0.62, y + h * 0.2); ctx.closePath(); ctx.fill();
+            drawBoy(x, y + h * 0.75, h * 1.5, face, false);
+          } else drawBoy(x, feet, h, face, false);
+        }
+        // Black shapes with yellow eyes that always show. On the board they face left.
+        var BEAST = {
+          crawler: { cx: 110, cy: 266, h: 68, draw: function () {
+            ctx.fill(new Path2D('M70 300 q0 -56 40 -56 q40 0 40 56 z')); ctx.fill(new Path2D('M82 262 L74 232 L98 250 Z')); ctx.fill(new Path2D('M138 262 L146 232 L122 250 Z'));
+            ctx.fillStyle = '#ffe66d'; dot(96, 276, 5); dot(116, 276, 5); } },
+          thorn: { cx: 300, cy: 223, h: 154, draw: function () {
+            ctx.lineWidth = 12; ctx.stroke(new Path2D('M300 300 C290 262 316 232 300 198'));
+            ['M296 270 L276 262 L296 256 Z', 'M308 244 L328 236 L308 230 Z', 'M300 222 L282 212 L302 208 Z', 'M300 300 q-30 -4 -38 -22 q26 0 38 22 z', 'M300 300 q30 -4 38 -22 q-26 0 -38 22 z', 'M300 176 L274 160 A30 30 0 1 1 274 192 Z'].forEach(function (d) { ctx.fill(new Path2D(d)); });
+            ctx.fillStyle = '#ffe66d'; dot(304, 162, 4.5); } },
+          flyer: { cx: 500, cy: 180, h: 60, draw: function () {
+            ctx.beginPath(); ctx.ellipse(500, 190, 22, 17, 0, 0, Math.PI * 2); ctx.fill();
+            ['M482 186 L430 150 L446 184 L428 196 L470 202 Z', 'M518 186 L570 150 L554 184 L572 196 L530 202 Z', 'M486 178 L484 162 L496 174 Z', 'M514 178 L516 162 L504 174 Z'].forEach(function (d) { ctx.fill(new Path2D(d)); });
+            ctx.fillStyle = '#ffe66d'; dot(492, 190, 4); dot(506, 190, 4); } },
+          stalker: { cx: 702, cy: 220, h: 160, draw: function () {
+            ctx.lineWidth = 7; ctx.stroke(new Path2D('M690 300 L696 222')); ctx.stroke(new Path2D('M716 300 L708 222'));
+            ctx.beginPath(); ctx.ellipse(702, 200, 20, 30, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.lineWidth = 6; ctx.stroke(new Path2D('M686 190 L668 262')); ctx.stroke(new Path2D('M718 190 L736 262'));
+            dot(700, 156, 16); ctx.fillStyle = '#ffe66d'; dot(693, 155, 4); } },
+          watcher: { cx: 890, cy: 239, h: 122, draw: function () {
+            dot(890, 252, 48);
+            ['M866 212 L860 186 L882 204 Z', 'M890 204 L892 178 L906 204 Z', 'M910 210 L924 188 L926 216 Z'].forEach(function (d) { ctx.fill(new Path2D(d)); });
+            ctx.fillStyle = '#ffe66d'; dot(874, 244, 17); ctx.fillStyle = '#05060c'; dot(869, 244, 7); } }
+        };
+        // Merged monsters and the boss, built from the same kit of parts as in the adventure.
+        // The app fills this in when it loads the frame; it is drawings as data, nothing that runs.
+        var FIGURES = /*FIGURES*/{};
+        function drawFigure(figure, x, y, h, face) {
+          var k = h / figure.height, beat = 0.62 + 0.38 * Math.sin(performance.now() / 77);
+          ctx.save();
+          ctx.translate(x, y + h / 2); ctx.scale(face * k, k);
+          ctx.fillStyle = '#05060c'; ctx.strokeStyle = '#05060c'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+          for (var i = 0; i < figure.shapes.length; i++) {
+            var shape = figure.shapes[i], path = new Path2D();
+            // Wings beat about the height they are hinged at.
+            var sy = shape.wing ? shape.s * beat : shape.s;
+            path.addPath(new Path2D(shape.d), new DOMMatrix([shape.s * shape.fx, 0, 0, sy, shape.x, shape.y]));
+            if (shape.stroke) { ctx.lineWidth = shape.stroke * Math.max(0.6, shape.s); ctx.stroke(path); } else ctx.fill(path);
+          }
+          for (var e = 0; e < figure.eyes.length; e++) {
+            var eye = figure.eyes[e];
+            ctx.fillStyle = '#ffe66d'; dot(eye.x, eye.y, eye.r);
+            if (eye.pupil) { ctx.fillStyle = '#05060c'; dot(eye.x + eye.r * 0.3, eye.y, eye.r * 0.4); }
+          }
+          ctx.restore();
+        }
+        function drawMonster(x, y, w, h, kind, face) {
+          var figure = FIGURES[kind];
+          if (figure) {
+            var mist = ctx.createRadialGradient(x, y, 0, x, y, h * 0.9);
+            mist.addColorStop(0, palette.light + '30'); mist.addColorStop(1, palette.light + '00');
+            ctx.fillStyle = mist; ctx.fillRect(x - h, y - h, h * 2, h * 2);
+            return drawFigure(figure, x, y, h, face || 1);
+          }
+          var beast = BEAST[kind] || BEAST.crawler, scale = h / beast.h;
+          // A faint haze behind it, so the black shape reads against a dark backdrop.
+          var haze = ctx.createRadialGradient(x, y, 0, x, y, h * 1.1);
+          haze.addColorStop(0, palette.light + '30'); haze.addColorStop(1, palette.light + '00');
+          ctx.fillStyle = haze; ctx.fillRect(x - h * 1.1, y - h * 1.1, h * 2.2, h * 2.2);
+          ctx.save();
+          ctx.translate(x, y); ctx.scale(-face * scale, scale); ctx.translate(-beast.cx, -beast.cy);
+          ctx.fillStyle = '#05060c'; ctx.strokeStyle = '#05060c'; ctx.lineCap = 'round';
+          beast.draw();
+          ctx.restore();
+        }
+
+        // ---- backdrops for written games, in the colours of the mood ---------------------------------------
+        /** How far the backdrop runs past each side of the play area. */
+        var B = 120;
+        function mix(a, b, t) {
+          var out = '#';
+          for (var i = 1; i < 7; i += 2) { var x = parseInt(a.slice(i, i + 2), 16), y = parseInt(b.slice(i, i + 2), 16); out += Math.round(x + (y - x) * t).toString(16).padStart(2, '0'); }
+          return out;
+        }
+        function ridge(offset, base, tall, wave, fill) {
+          ctx.fillStyle = fill; ctx.beginPath(); ctx.moveTo(-B, GROUND);
+          for (var x = -B; x <= W + B; x += 20) { var k = (x + offset) / wave; ctx.lineTo(x, GROUND - base - tall * (0.5 + 0.5 * Math.sin(k) * Math.cos(k * 0.37 + 1.3))); }
+          ctx.lineTo(W + B, GROUND); ctx.closePath(); ctx.fill();
+        }
+        function noise(i) { var v = Math.sin(i * 127.1) * 43758.5453; return v - Math.floor(v); }
+        /** A band of haze that is clear at its top and thickest at its bottom. */
+        function haze(top, height, colour, strength) {
+          var g = ctx.createLinearGradient(0, top, 0, top + height);
+          g.addColorStop(0, colour + '00');
+          g.addColorStop(1, colour + Math.round(strength * 255).toString(16).padStart(2, '0'));
+          ctx.fillStyle = g; ctx.fillRect(-B, top, W + B * 2, height);
+        }
+        function drawScene(scene, camera) {
+          var t = performance.now() / 1000;
+          if (scene === 'space') {
+            ctx.fillStyle = mix(palette.far, '#000000', 0.55); ctx.fillRect(-B, 0, W + B * 2, H);
+            for (var i = 0; i < 70; i++) { ctx.fillStyle = 'rgba(244,244,238,' + (0.35 + 0.45 * Math.abs(Math.sin(t * (0.5 + noise(i)) + i))) + ')'; dot(noise(i) * (W + B * 2) - B, (noise(i + 99) * H + t * (6 + noise(i + 7) * 14)) % H, 0.8 + noise(i + 31) * 1.2); }
+            // A far planet, lit along one edge.
+            ctx.fillStyle = mix(palette.far, palette.mid, 0.7); dot(660, 360, 140);
+            ctx.strokeStyle = mix(palette.mid, palette.light, 0.25); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(660, 360, 139, Math.PI * 1.05, Math.PI * 1.55); ctx.stroke();
+            return;
+          }
+          if (scene === 'room') {
+            ctx.fillStyle = mix(palette.far, palette.stage, 0.35); ctx.fillRect(-B, 0, W + B * 2, H);
+            ctx.fillStyle = mix(palette.mid, palette.light, 0.08);
+            for (var gx = 22 - 88; gx < W + B; gx += 44) for (var gy = 24; gy < H; gy += 44) dot(gx, gy, 1.4);
+            return;
+          }
+          var sky = ctx.createLinearGradient(0, 0, 0, GROUND);
+          sky.addColorStop(0, mix(palette.far, '#000000', 0.4)); sky.addColorStop(0.6, palette.far); sky.addColorStop(1, mix(palette.mid, palette.light, 0.18));
+          ctx.fillStyle = sky; ctx.fillRect(-B, 0, W + B * 2, GROUND);
+          // Stars in the upper sky, a few of them breathing, and the moon in a soft halo.
+          for (var st = 0; st < 40; st++) { ctx.fillStyle = 'rgba(244,244,238,' + (0.2 + 0.4 * noise(st + 300) * (0.6 + 0.4 * Math.sin(t * (0.6 + noise(st)) + st))) + ')'; dot(((noise(st + 200) * (W + B * 2) - camera * 0.02) % (W + B * 2) + W + B * 2) % (W + B * 2) - B, 8 + Math.pow(noise(st + 250), 1.6) * 170, 0.6 + noise(st + 260)); }
+          var halo = ctx.createRadialGradient(640, 70, 0, 640, 70, 95);
+          halo.addColorStop(0, mix('#ffffff', palette.light, 0.3) + '66'); halo.addColorStop(1, mix('#ffffff', palette.light, 0.3) + '00');
+          ctx.fillStyle = halo; ctx.fillRect(545, -25, 190, 190);
+          ctx.fillStyle = mix('#ffffff', palette.light, 0.2); ctx.globalAlpha = 0.85; dot(640, 70, 20); ctx.globalAlpha = 1;
+          if (scene === 'sky') {
+            // High up: clouds drift past and the land is far below.
+            for (var c = 0; c < 7; c++) {
+              var cxp = ((noise(c) * 1100 - t * (14 + noise(c + 3) * 26) - camera * 0.2) % 1100 + 1100) % 1100 - 150, cyp = 50 + noise(c + 11) * 190, cw = 90 + noise(c + 5) * 110;
+              ctx.fillStyle = mix(palette.mid, palette.light, 0.12); ctx.globalAlpha = 0.55;
+              ctx.beginPath(); ctx.ellipse(cxp, cyp, cw / 2, 13, 0, 0, Math.PI * 2); ctx.fill();
+              ctx.beginPath(); ctx.ellipse(cxp - cw * 0.18, cyp - 9, cw * 0.26, 12, 0, 0, Math.PI * 2); ctx.fill();
+              ctx.globalAlpha = 1;
+            }
+            ridge(camera * 0.1 + t * 10, -10, 22, 150, mix(mix(palette.mid, palette.light, 0.04), palette.far, 0.45));
+            // Far below there is no ground to stand on: the sky goes on, under a slow floor of cloud.
+            ctx.fillStyle = mix(palette.far, palette.mid, 0.4); ctx.fillRect(-B, GROUND, W + B * 2, H - GROUND);
+            haze(GROUND - 50, 140, mix(palette.mid, palette.light, 0.2), 0.55);
+            ctx.fillStyle = mix(palette.mid, palette.light, 0.16);
+            for (var f = 0; f < 12; f++) {
+              var fx = ((noise(f + 300) * 1200 - t * 22 - camera * 0.3) % 1200 + 1200) % 1200 - 200, fw = 120 + noise(f + 310) * 140;
+              ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.ellipse(fx, GROUND + 26 + noise(f + 320) * 40, fw / 2, 18, 0, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+            return;
+          } else {
+            ridge(camera * 0.12 + t * 4, 40, 90, 170, mix(mix(palette.mid, palette.light, 0.03), palette.far, 0.25));
+            haze(GROUND - 150, 150, mix(palette.mid, palette.light, 0.16), 0.4);
+            ridge(camera * 0.3 + t * 9 + 400, 6, 70, 110, mix(palette.far, palette.stage, 0.15));
+            // A row of pines on the near hills, moving with them.
+            ctx.fillStyle = mix(palette.far, palette.stage, 0.3);
+            for (var pi = 0; pi < 14; pi++) {
+              var px = ((noise(pi + 400) * 1300 - camera * 0.45 - t * 12) % 1300 + 1300) % 1300 - 150, ph = 60 + noise(pi + 410) * 70, pw = 24 + noise(pi + 420) * 18;
+              for (var tier = 0; tier < 5; tier++) { var k = tier / 5, ty = GROUND - ph * (0.16 + k * 0.78), half = pw / 2 * (1 - k * 0.8); ctx.beginPath(); ctx.moveTo(px - half, ty + ph * 0.07); ctx.lineTo(px + half, ty + ph * 0.07); ctx.lineTo(px, ty - ph * 0.13); ctx.closePath(); ctx.fill(); }
+              ctx.fillRect(px - 1.5, GROUND - ph * 0.2, 3, ph * 0.2);
+            }
+            haze(GROUND - 90, 90, mix(palette.mid, palette.light, 0.2), 0.22);
+          }
+          // The ground: a lit edge, then dark earth with a little grain that moves with the camera.
+          var earth = ctx.createLinearGradient(0, GROUND, 0, H);
+          earth.addColorStop(0, mix(palette.stage, palette.mid, 0.3)); earth.addColorStop(1, mix(palette.stage, '#000000', 0.45));
+          ctx.fillStyle = earth; ctx.fillRect(-B, GROUND, W + B * 2, H - GROUND);
+          ctx.fillStyle = mix(mix(palette.stage, palette.mid, 0.75), palette.light, 0.25); ctx.fillRect(-B, GROUND, W + B * 2, 1.8);
+          // Grass in clumps along the edge, and now and then one of the small pale flowers of the road.
+          for (var s = 0; s < 46; s++) {
+            var sx = ((noise(s + 50) * 1100 - camera) % 1100 + 1100) % 1100 - 150;
+            ctx.fillStyle = mix(palette.stage, palette.far, 0.25);
+            for (var b = 0; b < 3; b++) { var bh = 5 + noise(s * 3 + b) * 12; ctx.beginPath(); ctx.moveTo(sx + b * 3 - 1.4, GROUND + 1); ctx.lineTo(sx + b * 3 + 1.4, GROUND + 1); ctx.lineTo(sx + b * 3 + (noise(s + b + 70) - 0.35) * 7, GROUND - bh); ctx.closePath(); ctx.fill(); }
+            if (noise(s + 90) < 0.25) { ctx.fillStyle = mix(palette.hero, '#ffffff', 0.55); for (var q = 0; q < 5; q++) { var a = (q * 72 - 90) * Math.PI / 180; dot(sx + 12 + Math.cos(a) * 2.2, GROUND - 12 + Math.sin(a) * 2.2, 1.6); } }
+          }
+        }
+
+        function resize() {
+          var ratio = Math.min(2, window.devicePixelRatio || 1);
+          canvas.width = Math.round(window.innerWidth * ratio);
+          canvas.height = Math.round(window.innerHeight * ratio);
+        }
+        function draw() {
+          var scale = Math.min(canvas.width / W, canvas.height / H);
+          var ox = (canvas.width - W * scale) / 2, oy = (canvas.height - H * scale) / 2;
+          ctx.setTransform(1, 0, 0, 1, 0, 0);
+          ctx.fillStyle = palette.stage;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.setTransform(scale, 0, 0, scale, ox, oy);
+          ctx.save();
+          ctx.beginPath(); ctx.rect(-ox / scale, 0, W + (ox / scale) * 2, H); ctx.clip();
+          drawScene(frame ? frame.scene : 'road', frame ? frame.camera : 0);
+          if (frame) {
+            var lights = [];
+            for (var i = 0; i < frame.sprites.length; i++) {
+              var s = frame.sprites[i];
+              var x = s[1] - (s[7] ? 0 : frame.camera), y = s[2], w = s[3], h = s[4];
+              if (s[6]) {
+                var r = Math.max(w, h) * 1.6;
+                var glow = ctx.createRadialGradient(x, y, 0, x, y, r);
+                glow.addColorStop(0, palette.light + '88'); glow.addColorStop(1, palette.light + '00');
+                ctx.fillStyle = glow; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+              }
+              if (s[0] === 'hero') { drawHero(x, y, w, h, s[8], s[9]); continue; }
+              if (s[0] === 'monster') { drawMonster(x, y, w, h, s[8], s[9]); continue; }
+              if (s[0] === 'light') { lights.push([x, y, w / 2]); drawLight(x, y, w / 2, 0.5); continue; }
+              if (s[0] === 'flower') { drawFlower(x, y, w / 2, colour(s[5]), 5); continue; }
+              ctx.fillStyle = colour(s[5]);
+              ctx.beginPath();
+              if (s[0] === 'circle') ctx.ellipse(x, y, Math.abs(w) / 2, Math.abs(h) / 2, 0, 0, Math.PI * 2);
+              else if (s[0] === 'tri') { ctx.moveTo(x - w / 2, y + h / 2); ctx.lineTo(x + w / 2, y + h / 2); ctx.lineTo(x, y - h / 2); ctx.closePath(); }
+              else ctx.rect(x - w / 2, y - h / 2, w, h);
+              ctx.fill();
+            }
+            // Darkness over everything, and the lights cut back into it.
+            if (frame.dark > 0) {
+              ctx.fillStyle = 'rgba(3, 5, 12, ' + frame.dark + ')';
+              ctx.fillRect(-B, 0, W + B * 2, H);
+              ctx.globalCompositeOperation = 'lighter';
+              for (var g = 0; g < lights.length; g++) drawLight(lights[g][0], lights[g][1], lights[g][2], 0.35);
+              ctx.globalCompositeOperation = 'source-over';
+            }
+            // Darker corners, as in the adventure.
+            var vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, W * 0.62);
+            vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.32)');
+            ctx.fillStyle = vig; ctx.fillRect(-B, 0, W + B * 2, H);
+            // Score, lives and one line of words, drawn here so a trick cannot hide them.
+            if (frame.preview) { ctx.restore(); return; }
+            ctx.fillStyle = palette.accent;
+            ctx.font = '600 15px system-ui, sans-serif';
+            ctx.textBaseline = 'top';
+            ctx.textAlign = 'left';
+            ctx.fillText(String(frame.score), 16, 14);
+            // Lives are the petals of his flower, as in the base game.
+            drawFlower(28, 52, 13, '#f2f4fa', frame.lives);
+            ctx.fillStyle = palette.hero; ctx.beginPath(); ctx.arc(28, 52, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = palette.accent;
+            if (frame.text) { ctx.textAlign = 'center'; ctx.fillStyle = '#f4f4ee'; ctx.fillText(frame.text, W / 2 - 40, 14, W - 280); }
+          }
+          ctx.restore();
+        }
+
+        // ---- sound: a few short notes ---------------------------------------------------------
+        var NOTES = { hit: 180, pick: 880, jump: 520, shoot: 660, win: 1040, lose: 140, tick: 760 };
+        function playSounds(names) {
+          if (!names || !names.length) return;
+          try {
+            audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+            if (audio.state !== 'running') return;
+            names.forEach(function (name, i) {
+              var osc = audio.createOscillator(), gain = audio.createGain(), t = audio.currentTime + i * 0.03;
+              osc.type = 'triangle'; osc.frequency.value = NOTES[name] || 440;
+              gain.gain.setValueAtTime(0.0001, t); gain.gain.linearRampToValueAtTime(0.12, t + 0.01); gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+              osc.connect(gain).connect(audio.destination); osc.start(t); osc.stop(t + 0.2);
+            });
+          } catch (e) { /* no sound is fine */ }
+        }
+
+        // ---- input: the same gestures as the base game ------------------------------------------
+        var keys = { up: false, down: false };
+        var touch = null;
+        function toGame(e) {
+          var rect = canvas.getBoundingClientRect();
+          var scale = Math.min(rect.width / W, rect.height / H);
+          return { x: (e.clientX - rect.left - (rect.width - W * scale) / 2) / scale, y: (e.clientY - rect.top - (rect.height - H * scale) / 2) / scale, sx: e.clientX, sy: e.clientY, half: e.clientX < rect.left + rect.width / 2 ? -1 : 1 };
+        }
+        canvas.addEventListener('pointerdown', function (e) {
+          var p = toGame(e);
+          touch = { id: e.pointerId, sx: p.sx, sy: p.sy, t: performance.now(), half: p.half, jumped: false };
+          input.held = true; input.x = p.x; input.y = p.y;
+          input.left = p.half < 0; input.right = p.half > 0;
+          if (audio && audio.state === 'suspended') audio.resume();
+          else if (!audio) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (err) { /* fine */ } }
+        });
+        canvas.addEventListener('pointermove', function (e) {
+          var p = toGame(e);
+          input.x = p.x; input.y = p.y;
+          if (!touch || touch.id !== e.pointerId) return;
+          var dy = p.sy - touch.sy;
+          if (dy < -40 && !touch.jumped) { touch.jumped = true; input.up = true; }
+          input.down = dy > 40 || keys.down;
+        });
+        function lift(e) {
+          if (!touch || touch.id !== e.pointerId) return;
+          var p = toGame(e);
+          if (performance.now() - touch.t <= 200 && Math.hypot(p.sx - touch.sx, p.sy - touch.sy) < 12) input.action = true;
+          touch = null;
+          input.held = false; input.left = keys.left || false; input.right = keys.right || false; input.down = keys.down;
+        }
+        canvas.addEventListener('pointerup', lift);
+        canvas.addEventListener('pointercancel', lift);
+        function key(code, down) {
+          if (code === 'KeyA' || code === 'ArrowLeft') { keys.left = down; input.left = down; }
+          else if (code === 'KeyD' || code === 'ArrowRight') { keys.right = down; input.right = down; }
+          else if (code === 'KeyW' || code === 'ArrowUp') { keys.up = down; input.up = down; }
+          else if (code === 'KeyS' || code === 'ArrowDown') { keys.down = down; input.down = down; }
+          else if ((code === 'KeyJ' || code === 'Enter' || code === 'Space') && down) input.action = true;
+        }
+        window.addEventListener('keydown', function (e) { key(e.code, true); });
+        window.addEventListener('keyup', function (e) { key(e.code, false); });
+        window.addEventListener('resize', resize);
+        resize();
+
+        // ---- messages from the app outside ----------------------------------------------------------
+        window.addEventListener('message', function (e) {
+          if (e.source !== parentWindow) return;
+          var m = e.data || {};
+          if (m.palette) for (var slot in palette) if (HEX.test(m.palette[slot])) palette[slot] = m.palette[slot];
+          var code = typeof m.code === 'string' ? m.code : '';
+          if (m.type === 'check') check(code, m.seed >>> 0);
+          else if (m.type === 'play') { begin(code, m.seed >>> 0); paused = !!m.held; }
+          else if (m.type === 'pause') paused = true;
+          else if (m.type === 'resume') { paused = false; last = performance.now(); }
+          else if (m.type === 'key') key(String(m.code), !!m.down);
+          else if (m.type === 'stop') { preview = null; stop(); }
+          else if (m.type === 'preview') {
+            stop();
+            preview = { at: Math.min(0.9, Math.max(0, Number(m.at) || 0.3)), scene: String(m.scene), vehicle: String(m.vehicle || ''), monsters: Array.isArray(m.monsters) ? m.monsters.map(String) : [] };
+            over = false; paused = true; playing = true;
+            requestAnimationFrame(loop);
+          }
+        });
+        tell({ type: 'ready' });
+      })();
+    </script>
+  </body>
+</html>

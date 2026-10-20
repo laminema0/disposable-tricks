@@ -1,0 +1,1177 @@
+/* The screens around the game: pick, title card, end card.
+   One spacing rhythm: 8, 16, 24. Type: Newsreader for names and titles, Instrument Sans for the rest.
+   Both fonts are bundled with the app; nothing is loaded from the network. */
+
+@font-face {
+  font-family: 'Newsreader';
+  src: url('../../node_modules/@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2') format('woff2');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Instrument Sans';
+  src: url('../../node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-normal.woff2')
+    format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+#ui {
+  /* The six palette slots of the current game. The app sets them from the settings. */
+  --far: #17153a;
+  --mid: #1f1c48;
+  --stage: #070a14;
+  --hero: #6b7388;
+  --light: #ffd9a0;
+  --accent: #ffe66d;
+  --ink: #f3efe6;
+  --ink-dim: rgba(243, 239, 230, 0.64);
+  --line: rgba(243, 239, 230, 0.18);
+  --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --sans: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 24px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#ui > * {
+  pointer-events: auto;
+}
+#ui [hidden] {
+  display: none !important;
+}
+#ui button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+#ui button:focus-visible {
+  outline: 2px solid var(--light);
+  outline-offset: 2px;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  padding: max(16px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: auto;
+}
+/* Everything on a screen lines up inside this frame. */
+.frame {
+  width: 100%;
+  max-width: 920px;
+  height: 100%;
+  max-height: 440px;
+  min-height: 296px;
+}
+
+.btn {
+  height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.btn.primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--stage) !important;
+}
+
+/* ---- pick screen ---- */
+
+.pick {
+  background: linear-gradient(180deg, var(--far), var(--stage));
+}
+.pick .frame {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr);
+  gap: 24px;
+}
+.rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.brand {
+  margin: 0 0 16px;
+  font: 500 20px/32px var(--serif);
+  white-space: nowrap;
+}
+.steps {
+  display: grid;
+}
+.step {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: center;
+  height: 40px;
+  padding: 0 0 0 14px;
+  border: 0;
+  border-left: 2px solid var(--line);
+  background: none;
+  text-align: left;
+}
+.step .name {
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+.step .value {
+  font: 500 17px/24px var(--serif);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.step[aria-current='step'] {
+  border-left-color: var(--accent);
+}
+.step[aria-current='step'] .name {
+  color: var(--ink);
+}
+.step:disabled {
+  cursor: default;
+}
+.step:disabled .name {
+  opacity: 0.55;
+}
+.rail .btn {
+  margin-top: auto;
+}
+
+.choose {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.ask {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  height: 32px;
+  margin: 0 0 16px;
+  white-space: nowrap;
+}
+.ask h2 {
+  margin: 0;
+  font: 500 24px/32px var(--serif);
+}
+.ask .note {
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+.options {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+}
+.option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  text-align: left;
+}
+.option .label {
+  font: 500 24px/32px var(--serif);
+  white-space: nowrap;
+}
+.option .detail {
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+.option[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.option:disabled {
+  border-style: dashed;
+  background: none;
+  opacity: 0.5;
+  cursor: default;
+}
+/* A mood card wears its own palette. */
+.option.mood {
+  background: linear-gradient(180deg, var(--far), var(--mid));
+}
+.swatch {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  gap: 8px;
+}
+.swatch i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+.swatch i:nth-child(1) {
+  background: var(--light);
+  box-shadow: 0 0 12px 2px var(--light);
+}
+.swatch i:nth-child(2) {
+  background: var(--hero);
+}
+.swatch i:nth-child(3) {
+  background: var(--accent);
+}
+
+.option .tag {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--accent);
+}
+
+/* The text field under the cards. Same height and corners as a button. */
+.wish {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.wish input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--ink);
+  /* 16px, so a phone does not zoom the page when the field is tapped. */
+  font: 16px/1 var(--sans);
+  user-select: text;
+  -webkit-user-select: text;
+}
+.wish input::placeholder {
+  color: var(--ink-dim);
+}
+.wish input:focus-visible {
+  outline: 2px solid var(--light);
+  outline-offset: 2px;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* While a game is being made nothing can be tapped. */
+.frame.busy .rail,
+.frame.busy .options,
+.frame.busy .wish {
+  pointer-events: none;
+  opacity: 0.5;
+}
+.frame.busy .ask .note {
+  color: var(--ink);
+}
+
+/* ---- title card and end card: they sit over the paused game ---- */
+
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--stage);
+  opacity: 0.8;
+}
+.card .frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+.card h1 {
+  margin: 0 0 8px;
+  font: 500 clamp(36px, 12vh, 60px) / 1.1 var(--serif);
+  letter-spacing: -0.01em;
+}
+.card h1.long {
+  font-size: clamp(28px, 9vh, 44px);
+}
+.card p {
+  margin: 0;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+.card p.intro {
+  margin: 0 0 8px;
+  font: 500 17px/24px var(--serif);
+  color: var(--ink);
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+}
+.link-field {
+  width: 100%;
+  max-width: 560px;
+  height: 44px;
+  margin-top: 8px;
+  padding: 0 16px;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--ink);
+  font: 13px/1 var(--sans);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.menu {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  border-color: transparent;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--ink-dim) !important;
+}
+
+/* What was understood from a written wish: one line, cut short if it does not fit. */
+.ask h2 {
+  flex: none;
+}
+.ask .note {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The cards of a step are being thought of. */
+.options.waiting::before {
+  content: 'Thinking of options…';
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  align-self: center;
+  justify-self: center;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+/* The top of the rail: the name, and a quiet way to "My games" once something is saved. */
+.rail .top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.saved-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: 13px/20px var(--sans);
+  color: var(--accent);
+  cursor: pointer;
+}
+.btn[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* "My games" */
+.shelf .frame {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 100%;
+}
+.shelf .head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.shelf .saved {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+.shelf .row {
+  display: flex;
+  gap: 8px;
+}
+.shelf .game {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.shelf .game .label {
+  font: 500 17px/24px var(--serif);
+}
+.shelf .game .detail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+.shelf p.note {
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+/* The locked frame a written game plays in: the whole screen, under the interface. */
+.trick-frame {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* The first question has six cards: three across. */
+.options.six {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* ---- the maker over its live scene ----
+   The game being made stands behind the questions: the steps on the left, the hero in the
+   open space in the middle, the cards on the right. The cards are glass over the scene.
+   Columns never go below what their names need, so nothing overlaps at any landscape width. */
+.pick {
+  background: none;
+}
+.pick::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--stage) 62%, transparent) 0, transparent 26%),
+    linear-gradient(90deg, transparent 38%, color-mix(in srgb, var(--stage) 70%, transparent) 58%);
+}
+.pick .frame {
+  --rail: 196px;
+  --panel: clamp(340px, 50vw, 540px);
+  position: relative;
+  grid-template-columns: var(--rail) minmax(0, 1fr) var(--panel);
+  gap: 16px;
+}
+.pick .stage {
+  min-width: 0;
+}
+.step {
+  height: 34px;
+  grid-template-columns: 68px minmax(0, 1fr);
+}
+.options,
+.options.six {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: none;
+  grid-auto-rows: minmax(0, 1fr);
+}
+.option {
+  padding: 8px 16px 12px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--stage) 64%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.option .label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: clamp(18px, 2.3vw, 24px);
+}
+.option .detail {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ask {
+  overflow: hidden;
+}
+.ask h2 {
+  font-size: clamp(20px, 2.6vw, 24px);
+}
+.ask .note {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wish input {
+  background: color-mix(in srgb, var(--stage) 70%, transparent);
+}
+@media (max-width: 760px) {
+  .pick .frame {
+    --rail: 160px;
+    --panel: clamp(300px, 52vw, 420px);
+  }
+  .brand {
+    font-size: 17px;
+  }
+  .step {
+    grid-template-columns: 64px minmax(0, 1fr);
+    padding-left: 10px;
+  }
+  .step .value {
+    font-size: 14px;
+  }
+}
+/* A small phone: the cards take all the room right of the steps, and the hero stands under the steps. */
+@media (max-width: 640px) {
+  .pick .frame {
+    --rail: 124px;
+    grid-template-columns: var(--rail) 0 minmax(0, 1fr);
+  }
+  .brand {
+    font-size: 15px;
+    white-space: normal;
+    line-height: 20px;
+  }
+  .step {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .step .value {
+    display: none;
+  }
+  .option {
+    padding: 8px 12px;
+  }
+  .option .label {
+    font-size: 18px;
+    line-height: 24px;
+  }
+  .option .detail {
+    font-size: 12px;
+  }
+}
+@media (max-height: 340px) {
+  .screen {
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  .frame {
+    min-height: 0;
+  }
+  .ask {
+    margin-bottom: 8px;
+  }
+  .wish {
+    margin-top: 8px;
+  }
+}
+/* A small phone: the cards take all the room right of the steps, and the hero stands under the steps. */
+@media (max-width: 640px) {
+  .pick .frame {
+    --rail: 124px;
+    grid-template-columns: var(--rail) 0 minmax(0, 1fr);
+  }
+  /* The name keeps to one line; "Saved" goes under it. */
+  .rail .top {
+    flex-direction: column;
+    gap: 0;
+  }
+  .brand {
+    margin-bottom: 8px;
+    font-size: 15px;
+    line-height: 24px;
+  }
+  .step {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .step .value {
+    display: none;
+  }
+  .option {
+    padding: 8px 12px;
+  }
+  .option .label {
+    font-size: 18px;
+    line-height: 24px;
+  }
+  .option .detail {
+    font-size: 12px;
+  }
+}
+@media (max-height: 340px) {
+  .screen {
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  .frame {
+    min-height: 0;
+  }
+  .ask {
+    margin-bottom: 8px;
+  }
+  .wish {
+    margin-top: 8px;
+  }
+}
+@media (max-height: 340px) {
+  /* Seven steps still fit beside the cards on a short screen. */
+  .step {
+    height: 30px;
+  }
+}
+@media (max-height: 340px) and (max-width: 640px) {
+  /* A small phone held sideways: the name, "Saved", seven steps and the button all fit the height. */
+  .brand {
+    margin-bottom: 0;
+  }
+  .saved-link {
+    line-height: 18px;
+  }
+  .step {
+    height: 26px;
+  }
+  .rail .btn {
+    height: 36px;
+  }
+}
+
+/* ---- changing the game from the pause menu ---- */
+.change {
+  width: 100%;
+  max-width: 560px;
+  margin-top: 24px;
+}
+.change .wish {
+  margin-top: 8px;
+}
+.change-label {
+  color: var(--ink) !important;
+  font: 500 17px/24px var(--serif);
+}
+.change-note {
+  min-height: 24px;
+  margin-top: 8px !important;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.change + .actions {
+  margin-top: 8px;
+}
+/* What a change did, for a moment, at the top of the game. */
+.toast {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 60vw;
+  margin: 0;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--stage) 80%, transparent);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+@media (max-height: 340px) {
+  .change {
+    margin-top: 8px;
+  }
+  .change-note {
+    min-height: 16px;
+    line-height: 16px;
+  }
+}
+
+/* ---- the calm maker, 17 October: one question, four answers and a written fifth, as five equal rows ---- */
+.options.five {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  grid-auto-rows: unset;
+}
+.options.five .option {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  min-height: 0;
+}
+.options.five .option .label {
+  flex: none;
+  font-size: 20px;
+  line-height: 24px;
+}
+.options.five .option .detail {
+  min-width: 0;
+  text-align: right;
+}
+.options.five .option:hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+/* The written fifth answer looks like the other four: the same row, a field and a small button. */
+.options.five .written {
+  padding: 0 4px 0 16px;
+  cursor: text;
+}
+.options.five .written input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: 16px/1 var(--sans);
+  outline: none;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.options.five .written input::placeholder {
+  color: var(--ink-dim);
+}
+.options.five .written:focus-within {
+  border-color: var(--light);
+}
+.options.five .written .btn {
+  height: calc(100% - 8px);
+  max-height: 40px;
+  padding: 0 16px;
+}
+.frame.busy .options.five .written {
+  opacity: 0.5;
+}
+@media (max-width: 640px) {
+  .options.five .option .label {
+    font-size: 17px;
+  }
+}
+/* The question, and under it one quiet line: what was understood, or what could not be made. */
+.pick .ask {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0;
+  height: auto;
+  margin-bottom: 8px;
+}
+.pick .ask .note {
+  max-width: 100%;
+  min-height: 16px;
+  line-height: 16px;
+}
+
+/* Music and sound volume, under the pause menu's buttons. */
+.volume-row {
+  display: flex;
+  gap: 24px;
+  margin-top: 24px;
+}
+.volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-dim);
+  font: 500 13px/16px var(--sans);
+  white-space: nowrap;
+}
+.volume input {
+  width: 120px;
+  accent-color: var(--accent);
+}
+@media (max-width: 560px) {
+  .volume-row {
+    gap: 16px;
+  }
+  .volume input {
+    width: 96px;
+  }
+}
+
+/* ---- the centred menus (Amin, 19 Oct) ----
+   One column in the middle of every screen: a heading, pictures instead of names, one line to write in,
+   one way on. The pictures are lit like the game's lamps: warm at rest, warmer under the finger. */
+
+#ui .pick .frame,
+#ui .card .frame {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 920px;
+  max-height: none;
+}
+#ui .pick::before {
+  background: radial-gradient(ellipse 46% 70% at 50% 50%, color-mix(in srgb, var(--stage) 78%, transparent) 0, color-mix(in srgb, var(--stage) 40%, transparent) 60%, transparent 100%);
+}
+.hub {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: min(420px, 100%);
+  text-align: center;
+}
+.hub-corner {
+  position: absolute;
+  inset: 0 0 auto 0;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.hub-corner > * {
+  pointer-events: auto;
+}
+.hub-corner .right {
+  margin-left: auto;
+}
+.hub-ask {
+  margin: 0 0 8px;
+  font: 500 26px/32px var(--serif);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.hub-title {
+  margin: 0;
+  font: 500 clamp(36px, 10vh, 56px) / 1.05 var(--serif);
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+.hub-line {
+  margin: 0 0 8px;
+  color: var(--ink-dim);
+  font-size: 15px;
+  text-wrap: balance;
+}
+.hub-note {
+  min-height: 20px;
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+/* The four things he can carry. */
+.hub-choices {
+  display: grid;
+  grid-template-columns: repeat(4, 80px);
+  gap: 16px;
+}
+.choice {
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+  border: 1px solid color-mix(in srgb, var(--light) 26%, transparent);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--light) 22%, transparent), transparent 72%),
+    color-mix(in srgb, var(--stage) 55%, transparent);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  color: var(--ink);
+  transition:
+    transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 260ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 200ms,
+    color 200ms;
+}
+.choice svg {
+  width: 38px;
+  height: 38px;
+}
+.choice:hover,
+.choice:focus-visible {
+  transform: translateY(-3px);
+  border-color: var(--light);
+  color: var(--light);
+  box-shadow:
+    0 14px 28px rgba(0, 0, 0, 0.42),
+    inset 0 0 24px color-mix(in srgb, var(--light) 18%, transparent);
+}
+.choice:active {
+  transform: translateY(0) scale(0.95);
+}
+.choice:disabled {
+  opacity: 0.5;
+  transform: none;
+}
+
+/* Every monster, shown and not chosen; and the ones he wrote in. */
+.hub-cast {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+.cast-face {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--light) 14%, transparent), color-mix(in srgb, var(--stage) 60%, transparent) 70%);
+  color: color-mix(in srgb, var(--ink) 82%, var(--stage));
+}
+.cast-face svg {
+  width: 36px;
+  height: 36px;
+}
+.cast-face .eye {
+  fill: var(--accent);
+}
+.cast-added {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 16px;
+  align-self: center;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* One line to write in, and the way on: both as wide as the column. */
+.hub-write,
+#ui .card .change .wish {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 48px;
+  box-sizing: border-box;
+  padding: 0 4px 0 20px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--stage) 62%, transparent);
+  transition: border-color 200ms;
+}
+.hub-write:focus-within,
+#ui .card .change .wish:focus-within {
+  border-color: var(--light);
+}
+.hub-write input,
+#ui .card .change .wish input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+}
+.hub-write input::placeholder,
+#ui .card .change .wish input::placeholder {
+  color: var(--ink-dim);
+}
+.hub-write .btn,
+#ui .card .change .wish .btn {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 20px;
+}
+.hub-go {
+  width: 100%;
+  height: 48px;
+  border-radius: 24px;
+  font-size: 15px;
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), filter 200ms;
+}
+.hub-go:hover {
+  filter: brightness(1.06);
+}
+.hub-go:active {
+  transform: scale(0.98);
+}
+.frame.busy .hub-write,
+.frame.busy .hub-go {
+  opacity: 0.55;
+}
+
+/* Round picture buttons: the pause menu's actions, Back, Saved. */
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--stage) 55%, transparent);
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 200ms,
+    color 200ms;
+}
+.icon-btn svg {
+  width: 22px;
+  height: 22px;
+}
+.icon-btn:hover,
+.icon-btn:focus-visible {
+  border-color: var(--light);
+  color: var(--light);
+  transform: translateY(-2px);
+}
+.icon-btn:active {
+  transform: scale(0.94);
+}
+.icon-btn.primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--stage) !important;
+}
+.icon-btn.ghost {
+  width: 44px;
+  height: 44px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink-dim);
+}
+.icon-btn.ghost:hover {
+  color: var(--ink);
+}
+.hub-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* The pause menu's write-in, centred like everything else. */
+#ui .card .change {
+  width: 100%;
+  max-width: none;
+  margin: 8px 0 0;
+}
+#ui .card .change-label {
+  margin: 0 0 8px;
+  text-align: center;
+}
+#ui .card .change-note {
+  text-align: center;
+}
+#ui .card .change + .hub-actions {
+  margin-top: 0;
+}
+#ui .card .hub-title + .hub-line {
+  margin-top: -8px;
+}
+#ui .card .hub > .hub-go {
+  width: 240px;
+}
+
+/* Music and sound, each with its picture. */
+#ui .volume-row {
+  justify-content: center;
+  margin-top: 0;
+}
+.volume-mark {
+  display: grid;
+  place-items: center;
+  color: var(--ink-dim);
+}
+.volume-mark svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Short landscape phones: everything a little smaller, nothing cut off. */
+@media (max-height: 400px) {
+  .hub {
+    gap: 12px;
+  }
+  .hub-ask {
+    margin: 0;
+    font-size: 22px;
+    line-height: 28px;
+  }
+  .hub-choices {
+    grid-template-columns: repeat(4, 64px);
+    gap: 12px;
+  }
+  .choice {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+  }
+  .choice svg {
+    width: 32px;
+    height: 32px;
+  }
+  .cast-face {
+    width: 46px;
+    height: 46px;
+  }
+  .cast-face svg {
+    width: 30px;
+    height: 30px;
+  }
+  .hub-write,
+  .hub-go,
+  #ui .card .change .wish {
+    height: 42px;
+  }
+  .hub-write .btn,
+  #ui .card .change .wish .btn {
+    height: 34px;
+  }
+  .icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .hub-title {
+    font-size: clamp(30px, 11vh, 44px);
+  }
+  #ui .card .change-label {
+    display: none;
+  }
+}
+
+/* Behind a menu the game rests out of focus, so its own words never compete with the menu's. */
+#ui .card::before {
+  opacity: 0.86;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}

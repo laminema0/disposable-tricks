@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 360" width="1000" height="360">
+  <!-- The five base enemies from the FigJam board. Ground line is y=300. They face left, toward the hero.
+       Body colour #070a14, eyes #ffe66d. Each enemy is one group with an id. -->
+  <defs><linearGradient id="dusk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f1c48"/><stop offset="0.55" stop-color="#7b2d5b"/><stop offset="1" stop-color="#d98a5a"/></linearGradient></defs>
+  <rect width="1000" height="360" fill="url(#dusk)"/>
+  <rect x="0" y="298" width="1000" height="62" fill="#070a14"/>
+
+  <g id="crawler">
+    <path d="M70 300 q0 -56 40 -56 q40 0 40 56 z" fill="#070a14"/>
+    <path d="M82 262 L74 232 L98 250 Z" fill="#070a14"/><path d="M138 262 L146 232 L122 250 Z" fill="#070a14"/>
+    <circle cx="96" cy="276" r="5" fill="#ffe66d"/><circle cx="116" cy="276" r="5" fill="#ffe66d"/>
+  </g>
+
+  <g id="thorn">
+    <path d="M300 300 C290 262 316 232 300 198" stroke="#070a14" stroke-width="12" stroke-linecap="round" fill="none"/>
+    <path d="M296 270 L276 262 L296 256 Z" fill="#070a14"/><path d="M308 244 L328 236 L308 230 Z" fill="#070a14"/><path d="M300 222 L282 212 L302 208 Z" fill="#070a14"/>
+    <path d="M300 300 q-30 -4 -38 -22 q26 0 38 22 z" fill="#070a14"/><path d="M300 300 q30 -4 38 -22 q-26 0 -38 22 z" fill="#070a14"/>
+    <path d="M300 176 L274 160 A30 30 0 1 1 274 192 Z" fill="#070a14"/>
+    <circle cx="304" cy="162" r="4.5" fill="#ffe66d"/>
+  </g>
+
+  <g id="flyer">
+    <ellipse cx="500" cy="190" rx="22" ry="17" fill="#070a14"/>
+    <path d="M482 186 L430 150 L446 184 L428 196 L470 202 Z" fill="#070a14"/><path d="M518 186 L570 150 L554 184 L572 196 L530 202 Z" fill="#070a14"/>
+    <path d="M486 178 L484 162 L496 174 Z" fill="#070a14"/><path d="M514 178 L516 162 L504 174 Z" fill="#070a14"/>
+    <circle cx="492" cy="190" r="4" fill="#ffe66d"/><circle cx="506" cy="190" r="4" fill="#ffe66d"/>
+  </g>
+
+  <g id="stalker">
+    <path d="M690 300 L696 222" stroke="#070a14" stroke-width="7" stroke-linecap="round" fill="none"/><path d="M716 300 L708 222" stroke="#070a14" stroke-width="7" stroke-linecap="round" fill="none"/>
+    <ellipse cx="702" cy="200" rx="20" ry="30" fill="#070a14"/>
+    <path d="M686 190 L668 262" stroke="#070a14" stroke-width="6" stroke-linecap="round" fill="none"/><path d="M718 190 L736 262" stroke="#070a14" stroke-width="6" stroke-linecap="round" fill="none"/>
+    <circle cx="700" cy="156" r="16" fill="#070a14"/>
+    <circle cx="693" cy="155" r="4" fill="#ffe66d"/>
+  </g>
+
+  <g id="watcher">
+    <circle cx="890" cy="252" r="48" fill="#070a14"/>
+    <path d="M866 212 L860 186 L882 204 Z" fill="#070a14"/><path d="M890 204 L892 178 L906 204 Z" fill="#070a14"/><path d="M910 210 L924 188 L926 216 Z" fill="#070a14"/>
+    <circle cx="874" cy="244" r="17" fill="#ffe66d"/><circle cx="869" cy="244" r="7" fill="#070a14"/>
+  </g>
+</svg>

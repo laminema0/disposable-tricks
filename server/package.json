@@ -1,0 +1,14 @@
+{
+  "name": "disposable-tricks-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "The AI function of Disposable Tricks. It holds the API keys and only ever returns a settings file.",
+  "scripts": {
+    "test:providers": "npm --prefix .. run test:providers",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
