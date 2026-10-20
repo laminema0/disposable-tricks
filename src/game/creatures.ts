@@ -7,7 +7,8 @@
 
 import { makeRng } from '../core/rng';
 import type { Attack, Body, Creature, Enemy, MoveOf, Recipe } from '../settings/schema';
-import { beastFor, beastScale } from './beasts';
+import { beastScale } from './beasts';
+import { drawingFor } from './generated';
 import { BOSS } from './config';
 import { BOSS_POINTS, bossFigure, creatureFigure, mergeFigure, mergeKey, type Figure } from './kit';
 import { MONSTERS, type MonsterSpec } from './monsters';
@@ -77,13 +78,14 @@ export function designFor(creature: Creature): Design {
   const brain = brainFor(creature);
   const base = MONSTERS[brain];
   // One of our own drawings: its body to hit is the size of the drawing.
-  const beast = beastFor(creature.name);
+  const beast = drawingFor(creature);
   const box = beast ? { halfW: Math.round(beast.w * beastScale(beast) * 0.3), height: beast.height } : BODY_BOX[creature.body];
   const airborne = isAirborne(creature);
   // In the air it looks down. On the ground its body decides: tall looks ahead and high, low along the ground.
   const sight = brain === 'watcher' ? undefined : airborne ? SIGHTS.flyer : creature.body === 'tall' ? (brain === 'thorn' ? SIGHTS.thorn : SIGHTS.stalker) : SIGHTS.crawler;
-  // A creature with a silhouette of its own keeps it. Every other one is built from the kit.
-  const figure = creature.recipe ? undefined : creatureFigure(creature);
+  // A creature with a drawing (ours or generated) or a silhouette of its own keeps it. Every other one is built
+  // from the kit, until its generated look arrives (GameScene swaps it then).
+  const figure = creature.recipe || beast ? undefined : creatureFigure(creature);
   return {
     brain,
     creature,

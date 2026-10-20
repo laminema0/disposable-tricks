@@ -41,9 +41,12 @@ export function chooseKinds(rules: MonsterRules): Cast[] {
     ...(rules.more ?? []).filter((kind) => rules.enemies.includes(kind)),
   ];
   const count = kinds.length === 0 ? 0 : rules.count ?? MONSTER_COUNT[Math.round(rules.difficulty)] ?? MONSTER_COUNT[2];
-  const order = shuffle([...kinds], rng);
+  // The monsters the player wrote in always come (20 Oct: a unicorn asked for was sometimes left off the road),
+  // each of them first, and then ours in turn.
+  const written = kinds.filter((cast) => typeof cast === 'number');
+  const order = [...written, ...shuffle(kinds.filter((cast) => typeof cast !== 'number'), rng)];
   const chosen: Cast[] = [];
-  for (let i = 0; i < count; i++) chosen.push(order[i % order.length]);
+  for (let i = 0; i < Math.max(count, written.length); i++) chosen.push(order[i % order.length]);
   if (rules.twist === 'more-watchers') for (let i = 0; i < EXTRA_WATCHERS; i++) chosen.push('watcher');
   return shuffle(chosen, rng);
 }

@@ -6,6 +6,7 @@
 import { isFakeMode } from './fake';
 import type { Handler } from './handler';
 import { providersFromEnv, type Env } from './providers';
+import { handleLook } from './look';
 import { handlerFromEnv } from './setup';
 
 const handlers = new Map<string, Handler>();
@@ -19,6 +20,7 @@ function modeFor(request: Request | undefined, env: Env): string {
 }
 
 export function handle(request: Request, env: Env): Promise<Response> {
+  if (new URL(request.url).pathname.endsWith('/look')) return handleLook(request, env);
   const mode = modeFor(request, env);
   // One function per fake mode and per set of keys, so a change in server/.env takes effect at once.
   const key = `${mode}|${KEY_NAMES.map((name) => env[name] ?? '').join('|')}`;

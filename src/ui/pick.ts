@@ -14,6 +14,7 @@ import { repairSettings } from '../settings/validate';
 import { button, el } from './dom';
 import { ACTION_ICONS, ANY_WEAPON, iconButton, MONSTER_ICONS, WEAPON_ICONS } from './icons';
 import { ENEMIES, type Enemy } from '../settings/schema';
+import { prepareCreatureLooks } from '../game/generated';
 
 const MONSTER_NAMES: Record<Enemy, string> = { crawler: 'Charger', thorn: 'Spitter', flyer: 'Diver', stalker: 'Stalker', watcher: 'Watcher' };
 
@@ -175,6 +176,7 @@ export function createPickScreen(handlers: Handlers, maker: Maker): PickScreen {
     if (q.options.length === 0) {
       // Adding monsters: he can add more, and starts when he is ready.
       draft = result.settings;
+      prepareCreatureLooks(draft.creatures);
       handlers.onPalette(draft);
       status = result.missed ? `No ${result.missed} here yet.` : `Added: ${draft.creatures.map((c) => c.name).join(', ')}`;
       render();

@@ -4,6 +4,8 @@
 import Phaser from 'phaser';
 import { DANGER, SUSPECT } from './signals';
 import { Talk } from './talk';
+import { onLook } from '../ai/look';
+import { isLookFor, prepareCreatureLooks } from './generated';
 import { landIndex, landOf } from './lands';
 import { bossAlone, bossDeath, bossIntro, dyingLine, soldierCount, taunt } from './dialogue';
 import { Controls, type Intent } from '../core/controls';
@@ -288,6 +290,19 @@ export class GameScene extends Phaser.Scene {
     const placed = this.previewAt === undefined ? placeMonsters(this.level, rules).filter((spawn) => !this.resume || Math.abs(spawn.x - startX) > 380) : showcase(settings);
     this.world = new MonsterWorld(placed, plan ? { toughness: plan.toughness, pace: plan.pace, sight: plan.sight } : undefined);
     for (const monster of this.world.monsters) this.addView(monster);
+    // A generated look that arrives during play replaces the stand-in shape at once (ai/look.ts).
+    prepareCreatureLooks(settings.creatures);
+    const stopLooks = onLook((look) => {
+      for (const monster of this.world.monsters) {
+        // Its stand-in, whether built from parts or from the AI's own rough shapes, gives way to the real look.
+        if (!monster.alive || !isLookFor(look, monster.creature)) continue;
+        this.views.get(monster)?.destroy();
+        monster.figure = undefined;
+        this.addView(monster);
+        this.puff.explode(10, monster.x, monster.y - 30);
+      }
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, stopLooks);
     this.talk = new Talk(this, { hero: this.look.hero.flower, monster: SUSPECT, boss: DANGER }, DEPTH.hud + 1);
     this.health = this.resume
       ? { ...newHealth(), petals: Math.max(1, this.resume.petals), flowers: this.resume.flowers }

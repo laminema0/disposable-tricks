@@ -1,11 +1,11 @@
-// Runs the server function inside the Vite dev server, at /api/make.
+// Runs the server function inside the Vite dev server, at /api/make and /api/look.
 // So "npm run dev" is all that is needed: one address, one port, and the keys in
 // server/.env stay on this computer. A built site does not contain any of this.
 
 import { fileURLToPath } from 'node:url';
 import { loadEnv } from 'vite';
 
-const ROUTE = '/api/make';
+const ROUTES = ['/api/make', '/api/look'];
 
 export function aiDevServer() {
   return {
@@ -21,13 +21,14 @@ export function aiDevServer() {
       );
 
       server.middlewares.use(async (req, res, next) => {
-        if (!req.url || req.url.split('?')[0] !== ROUTE) return next();
+        const route = req.url?.split('?')[0];
+        if (!route || !ROUTES.includes(route)) return next();
         try {
           const chunks = [];
           for await (const chunk of req) chunks.push(chunk);
           const dev = await load();
           const reply = await dev.handle(
-            new Request(`http://localhost${ROUTE}`, {
+            new Request(`http://localhost${route}`, {
               method: req.method,
               headers: Object.entries(req.headers).filter(([, value]) => typeof value === 'string'),
               body: req.method === 'POST' ? Buffer.concat(chunks) : undefined,

@@ -1071,9 +1071,30 @@ export const BEASTS: Beast[] = [
   },
 ];
 
-/** Our drawing for a monster with this name, if we have one. */
+/**
+ * Words that only describe the thing that follows them: "a giant snail" is a snail, not our giant (the troll), and
+ * "a dark wolf" is our wolf. A describing word on its own ("a giant") still counts (20 Oct).
+ */
+const DESCRIBING = /^(giant|huge|big|large|massive|enormous|small|little|tiny|evil|dark|scary|angry|mad|wild|undead|ghostly|shadow|black|white|red|green|blue|golden|ancient|old|young|baby|mega|super|monster|monstrous|cursed|demonic|flying|fire|ice|stone|rock|metal|iron|robot|zombie|vampire|killer|mutant|mutated|two|three|four|many|headed|legged|winged|eyed)$/;
+
+function headOf(name: string): string {
+  const words = name
+    .toLowerCase()
+    .replace(/[^a-z\s-]/g, ' ')
+    .split(/[\s-]+/)
+    .filter((w) => w && !/^(a|an|the|some)$/.test(w));
+  while (words.length > 1 && DESCRIBING.test(words[0])) words.shift();
+  return words.join(' ');
+}
+
+/** Our drawing for a monster with this name, if we have one: by the thing it is, not by the words describing it. */
 export function beastFor(name: string | undefined): Beast | undefined {
-  return name ? BEASTS.find((beast) => beast.words.test(name)) : undefined;
+  if (!name) return undefined;
+  const head = headOf(name);
+  const found = BEASTS.find((beast) => beast.words.test(head));
+  if (found) return found;
+  // A name made only of describing words ("rock monster") is read whole.
+  return DESCRIBING.test(head) ? BEASTS.find((beast) => beast.words.test(name.toLowerCase())) : undefined;
 }
 
 /** Every drawing, as a white silhouette at three times its size, so it stays sharp when scaled. */

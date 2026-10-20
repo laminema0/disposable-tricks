@@ -7,7 +7,8 @@
 import Phaser from 'phaser';
 import { mixColour } from '../core/light';
 import { GROUND_Y, WATCHER } from './config';
-import { beastFor, beastScale, type Beast } from './beasts';
+import { beastScale, type Beast } from './beasts';
+import { drawingFor, ensureLookTextures } from './generated';
 import { lookOf } from './creatures';
 import type { MonsterLook } from './look';
 import { MOVES, watcherEye, type Monster } from './monsters';
@@ -60,7 +61,8 @@ export class CreatureView {
     this.time = monster.id * 1.37;
     this.sight = scene.add.graphics().setDepth(depth - 0.2).setBlendMode(Phaser.BlendModes.ADD);
     this.body = scene.add.graphics().setDepth(depth);
-    this.beast = beastFor(monster.creature?.name);
+    this.beast = drawingFor(monster.creature);
+    if (this.beast) ensureLookTextures(scene, this.beast);
     if (this.beast) {
       this.picture = scene.add.image(0, 0, this.beast.key).setOrigin(0.5, 1).setDepth(depth);
       if (scene.textures.exists(`${this.beast.key}-rim`)) {
