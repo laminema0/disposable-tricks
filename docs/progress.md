@@ -215,6 +215,7 @@ Ten wishes, sent exactly as the game sends them, each script test-run in the loc
 | 5.3 | First deploy | Done | 20 Oct: live at https://disposable-tricks.pages.dev (Cloudflare Pages + Pages Function); AI answers online (Groq). Update with npm run deploy (npm.cmd in PowerShell). |
 | 2.25 | Monsters generated on request | Done locally | 20 Oct: /api/look (FLUX.1 schnell silhouettes, cached 60 days), cut-out in the browser, shown as drawings, live swap; fixed: drawings never shown for written-in monsters, written-in monsters left off the road, "giant X" matching the troll. Not yet deployed. |
 | 2.26 | Map closing, held taunts, one planting bunch, ramps | Done locally | 20 Oct: map opens and closes on touch-down (fixed reopen on finger lift); taunts as a ~1.3 s held moment on first notice, bubbles die with their monster, no dying line; flowers planted as one bunch; mounds (level.ts groundAt) for hero, monsters, darts, drops. Bots in tests/sim do not climb mounds yet. |
+| 2.27 | Generated weapons and anything written | Done | 20 Oct: weapons generated too (upright, sized by type); gentler retries when the image model refuses; 40 of 40 written things usable (1.8 s); start no longer hangs; one taunt per stretch, shorter boss talk; our own weapons (Gun) keep their drawings; the gun a little slower (speed 1.1, reach 300). Live. |
 
 ## 3. The AI
 
@@ -256,6 +257,7 @@ Ten wishes, sent exactly as the game sends them, each script test-run in the loc
 | 5.3 | Hosting on a free static host | Partly | Cloudflare Pages chosen and its config files are in place. Account and first deploy: action A3. |
 | 2.25 | Monsters generated on request | Done locally | 20 Oct: /api/look (FLUX.1 schnell silhouettes, cached 60 days), cut-out in the browser, shown as drawings, live swap; fixed: drawings never shown for written-in monsters, written-in monsters left off the road, "giant X" matching the troll. Not yet deployed. |
 | 2.26 | Map closing, held taunts, one planting bunch, ramps | Done locally | 20 Oct: map opens and closes on touch-down (fixed reopen on finger lift); taunts as a ~1.3 s held moment on first notice, bubbles die with their monster, no dying line; flowers planted as one bunch; mounds (level.ts groundAt) for hero, monsters, darts, drops. Bots in tests/sim do not climb mounds yet. |
+| 2.27 | Generated weapons and anything written | Done | 20 Oct: weapons generated too (upright, sized by type); gentler retries when the image model refuses; 40 of 40 written things usable (1.8 s); start no longer hangs; one taunt per stretch, shorter boss talk; our own weapons (Gun) keep their drawings; the gun a little slower (speed 1.1, reach 300). Live. |
 | 5.4 | "Turn your phone" screen and Add to Home Screen | Done | iPhones cannot lock rotation or go full screen from a web page, so the turn screen stays necessary there. |
 | 5.5 | Privacy page and 16+ label | Done | The page now says that choices and written wishes go to our server and on to an AI service, and that nothing is stored. Contact line still open (D7). |
 | 5.6 | Test with 5 to 10 players aged 16+ | Not started | |

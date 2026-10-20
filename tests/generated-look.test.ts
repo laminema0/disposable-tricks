@@ -138,3 +138,16 @@ describe('weapons get generated looks too (20 Oct)', async () => {
     expect(isOurWeapon({ name: 'Banana', kind: 'thrown', look: 'sling', reach: 200, speed: 1, power: 1 })).toBe(false);
   });
 });
+
+describe('our own weapons keep our drawings (20 Oct: the Gun was generated, too big)', async () => {
+  const { isOurWeapon } = await import('../src/game/generated');
+  const w = (name: string, look: string) => ({ name, kind: 'ranged' as const, look: look as 'pistol', reach: 300, speed: 1, power: 1 });
+  it('a Gun drawn as our pistol, a laser sword, a water pistol are ours; a hockey stick and a guitar are not', () => {
+    expect(isOurWeapon(w('Gun', 'pistol'))).toBe(true);
+    expect(isOurWeapon(w('Laser sword', 'sword'))).toBe(true);
+    expect(isOurWeapon(w('Water pistol', 'gun'))).toBe(true);
+    expect(isOurWeapon(w('Hockey stick', 'club'))).toBe(false);
+    expect(isOurWeapon(w('Guitar', 'club'))).toBe(false);
+    expect(isOurWeapon(w('Happens', 'club'))).toBe(false);
+  });
+});

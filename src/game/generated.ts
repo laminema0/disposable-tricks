@@ -73,9 +73,15 @@ export function isLookFor(look: Look, creature: Creature | undefined): boolean {
 
 // ---- weapons (20 Oct) ----
 
-/** One of our own drawn weapons: its name says the shape it has ("Pen" with the pen look). The launcher is always ours. */
+/** Words that name a weapon we have drawn ourselves: such a weapon keeps our drawing, whatever its look is called. */
+const OUR_WEAPON_WORDS = /\b(guns?|pistols?|handguns?|revolvers?|rifles?|shotguns?|bows?|arrows?|swords?|knife|knives|daggers?|spears?|lances?|hammers?|axes?|clubs?|staffs?|staves|stones?|rocks?|slings?|launchers?|bazookas?|rockets?|pens?)\b/i;
+
+/**
+ * One of our own drawn weapons: the game's own choices ("Gun" is drawn as our pistol, 20 Oct: it was being
+ * generated, too big), or any name with a weapon word we draw. Only the rest get a generated look.
+ */
 export function isOurWeapon(weapon: Weapon): boolean {
-  return weapon.kind === 'none' || weapon.look === 'launcher' || new RegExp(weapon.look, 'i').test(weapon.name);
+  return weapon.kind === 'none' || weapon.look === 'launcher' || new RegExp(weapon.look, 'i').test(weapon.name) || OUR_WEAPON_WORDS.test(weapon.name);
 }
 
 /** Ask for the look of a weapon we have not drawn. */

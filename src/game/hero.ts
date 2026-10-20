@@ -308,7 +308,9 @@ export class Hero {
   /** A generated look for his weapon (game/generated.ts): held at its grip, at the size of a composed weapon. */
   useWeaponTexture(key: string): void {
     this.sword.setTexture(key).setOrigin(0.5, 0.96);
-    this.swordScale = 0.46;
+    // Sized by what it is: a sword-sized thing in the hand, half that for something that fires, between for a throw.
+    const kind = this.look.weapon.kind;
+    this.swordScale = this.firearm || kind === 'ranged' ? 0.22 : kind === 'thrown' ? 0.32 : 0.46;
   }
 
   /** His blade met something: the lunge ends there, so he does not run through it. */

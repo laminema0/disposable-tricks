@@ -80,7 +80,8 @@ export const WEAPON_PRESETS: Record<WeaponLook, Weapon> = {
   knife: { name: 'Knife', kind: 'melee', look: 'knife', reach: 50, speed: 1.5, power: 1 },
   hammer: { name: 'Hammer', kind: 'melee', look: 'hammer', reach: 60, speed: 0.6, power: 2 },
   pen: { name: 'Pen', kind: 'melee', look: 'pen', reach: 44, speed: 1.8, power: 1 },
-  pistol: { name: 'Pistol', kind: 'ranged', look: 'pistol', reach: 340, speed: 1.4, power: 1 },
+  // A little slower and shorter than before (Amin, 20 Oct: "really easy to shoot").
+  pistol: { name: 'Pistol', kind: 'ranged', look: 'pistol', reach: 300, speed: 1.1, power: 1 },
   shotgun: { name: 'Shotgun', kind: 'ranged', look: 'shotgun', reach: 230, speed: 0.7, power: 2, shots: 5, spread: 0.32 },
   rifle: { name: 'Rifle', kind: 'ranged', look: 'rifle', reach: 420, speed: 0.8, power: 2 },
   launcher: { name: 'Bazooka', kind: 'ranged', look: 'launcher', reach: 460, speed: 0.5, power: 2 },
