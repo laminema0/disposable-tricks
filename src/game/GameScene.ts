@@ -39,7 +39,7 @@ import { CornerTurn } from './corner';
 import { MiniMap } from './minimap';
 import { dryness, QUEST, type QuestFlower, type QuestLayout, type Stone } from './quest';
 import { BACK_GATE, chooseGates, worldLayout } from './world';
-import { afterGate, count, detourIndex, enterStreet, gainXp, has, isLastLevel, LAST_LEVEL, leaveStreet, newRun, planChapter, SKILLS, XP, xpFor, type RunState, type SkillKey } from './run';
+import { afterGate, count, detourIndex, enterStreet, gainXp, has, isLastLevel, LAST_LEVEL, retryLevel, leaveStreet, newRun, planChapter, SKILLS, XP, xpFor, type RunState, type SkillKey } from './run';
 
 /** How often the monsters talk (Amin, 19 Oct: not all of them, and he does not answer all). */
 /** Gates fade out and in; the turning camera (corner.ts) is kept but not used (Amin, 20 Oct). */
@@ -78,6 +78,8 @@ export interface Finish {
   chapter?: number;
   /** He beat the last boss: the whole game is won and the world is green. */
   complete?: boolean;
+  /** He fell after world 1: the run that starts his world again (run.ts retryLevel). */
+  retry?: RunState;
   flowers?: number;
   distance?: number;
 }
@@ -1953,6 +1955,8 @@ export class GameScene extends Phaser.Scene {
       chapter: this.run.chapter,
       flowers: this.foundCount(),
       distance: Math.round(this.run.distance + this.hero.x),
+      // Fallen in a later world, he may start that world again instead of world 1.
+      retry: how === 'lost' && this.previewAt === undefined && this.run.checkpoint ? retryLevel(this.run, HEALTH.petals) : undefined,
     };
     this.time.delayedCall(wait * 1000, () => this.game.events.emit(FINISHED, finish));
   }

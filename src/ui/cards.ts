@@ -3,6 +3,7 @@
 import { WISH_MAX } from '../ai/protocol';
 import { answerLabel, question } from '../settings/tree';
 import type { Finish } from '../game/GameScene';
+import type { RunState } from '../game/run';
 import type { Settings } from '../settings/schema';
 import type { SavedGame } from '../settings/shelf';
 import { button, el } from './dom';
@@ -102,6 +103,8 @@ interface EndHandlers {
    */
   change(text: string): Promise<{ ok: boolean; line: string }>;
   onReplay(): void;
+  /** Start the world he fell in again (finish.retry). */
+  onRetry(run: RunState): void;
   onNew(): void;
   /** The share link of the current game. */
   link(): string;
@@ -173,8 +176,11 @@ export function createEndCard(handlers: EndHandlers): EndCard {
       if (!finished) actions.append(iconButton('icon-btn primary', ACTION_ICONS.play, 'Keep playing', handlers.onResume));
       // One line to change the game with words. The AI changes it, and play goes on (or starts again).
       const change = changeRow(handlers.change);
+      // Fallen in a later world: the big button tries that world again; starting over is the small one.
+      const retry = finish?.retry;
+      const tryAgain = retry ? button('btn primary hub-go', `Try World ${retry.chapter} again`, () => handlers.onRetry(retry)) : undefined;
       actions.append(
-        iconButton(finished ? 'icon-btn primary' : 'icon-btn', ACTION_ICONS.again, finished ? 'Play again' : 'Start over', handlers.onReplay),
+        iconButton(finished && !retry ? 'icon-btn primary' : 'icon-btn', ACTION_ICONS.again, finished && !retry ? 'Play again' : 'Start over from World 1', handlers.onReplay),
         copy,
         keep,
         iconButton('icon-btn', ACTION_ICONS.fresh, 'New game', handlers.onNew),
@@ -185,6 +191,7 @@ export function createEndCard(handlers: EndHandlers): EndCard {
       column.append(el('h1', 'hub-title', heading));
       if (!finish && progress) column.append(el('p', 'hub-line', progress));
       if (finish) column.append(el('p', 'hub-line', tally(finish)));
+      if (tryAgain) column.append(tryAgain);
       column.append(change, actions, said, volumeRow());
       frame.replaceChildren(column);
       element.hidden = false;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { afterGate, chooseSkill, enterStreet, gainXp, leaveStreet, newRun, planChapter, skillAt, takeUpgrade, xpFor } from '../src/game/run';
+import { afterGate, retryLevel, chooseSkill, enterStreet, gainXp, leaveStreet, newRun, planChapter, skillAt, takeUpgrade, xpFor, type RunState } from '../src/game/run';
 import { defaultSettings } from '../src/settings/defaults';
 
 describe('the endless run', () => {
@@ -72,5 +72,32 @@ describe('the endless run', () => {
     expect(next.chapter).toBe(2);
     expect(next.distance).toBe(5000);
     expect(next.streetsDone).toEqual([]);
+  });
+});
+
+describe('falling in a later world (Amin, 20 Oct: keep the level when you die)', () => {
+  it('starts that world again with full petals and the skills he had as it began', () => {
+    let run: RunState = { ...newRun(5), upgrades: ['reach'], xp: 6 };
+    run = afterGate(run, 4000); // world 2 begins
+    run = afterGate({ ...run, petals: 3 }, 4000); // world 3 begins with 3 petals
+    const fell = { ...run, petals: 0, upgrades: [...run.upgrades, 'quick' as const], xp: 20, found: ['a', 'b'], said: ['boss:3'], bossDown: [1, 2, 3] };
+    const again = retryLevel(fell, 5);
+    expect(again.chapter).toBe(3);
+    expect(again.petals).toBe(5);
+    expect(again.upgrades).toEqual(['reach']);
+    expect(again.xp).toBe(6);
+    expect(again.found).toEqual([]);
+    expect(again.stage).toBe('road');
+    // What he heard and the bosses he beat are kept.
+    expect(again.said).toEqual(['boss:3']);
+    expect(again.bossDown).toEqual([1, 2, 3]);
+    // Falling again brings him back to the same place.
+    expect(retryLevel({ ...again, chapter: 3, petals: 0 }, 5).chapter).toBe(3);
+  });
+
+  it('in world 1 it is a new run', () => {
+    const again = retryLevel({ ...newRun(5), petals: 0, xp: 9 }, 5);
+    expect(again.chapter).toBe(1);
+    expect(again.xp).toBe(0);
   });
 });

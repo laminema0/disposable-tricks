@@ -218,6 +218,7 @@ Ten wishes, sent exactly as the game sends them, each script test-run in the loc
 | 2.27 | Generated weapons and anything written | Done | 20 Oct: weapons generated too (upright, sized by type); gentler retries when the image model refuses; 40 of 40 written things usable (1.8 s); start no longer hangs; one taunt per stretch, shorter boss talk; our own weapons (Gun) keep their drawings; the gun a little slower (speed 1.1, reach 300). Live. |
 | 2.28 | Dialogue once, boss stays beaten, surer monsters, fades, clearer stones | Done locally | 20 Oct: every conversation heard once per run; a beaten boss stays beaten; monsters notice sooner and see over mounds; a plain fade through gates; bigger, lighter stones. Not yet deployed. |
 | 2.29 | Ten worlds, ten bosses, the green finale | Done locally | 20 Oct: the run is 10 worlds, each harder (run.ts LEVELS); 10 lands; 10 bosses, each its own body, moves and words (bosses.ts, kit.ts bossBody); beating the 10th and planting turns the world green: day sky, sun rises, grass and flowers, "The world is green again" end card. Checked in the browser (all ten bodies, the finale). Not yet deployed. |
+| 2.30 | Keep the level when you die | Done locally | 20 Oct: losing every petal after world 1 offers "Try World N again": that world from its start, full petals, the skills he had as it began; beaten bosses stay beaten, heard words are not repeated. "Start over from World 1" stays as the small button. Lasts for the session (not kept after closing the browser). Checked in the browser. Not yet deployed. |
 
 ## 3. The AI
 

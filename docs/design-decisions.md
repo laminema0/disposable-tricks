@@ -298,3 +298,9 @@ Amin: "Let's have only 10 levels ... harder in each level ... every boss ... has
   10. The Last Drought: the biggest; a little of everything the others did.
 - **As each boss dies it names the next.** The last one's words are its end: "the rain... I can hear it".
 - **The finale.** Beating the Last Drought and planting the flowers: the night sky turns to day, the moon goes and the sun rises behind the hills, green spreads along the ground from where he stands, grass and flowers come up everywhere, any monster left turns to petals, and the end card says "The world is green again".
+
+## Keep the level when you die, 20 October 2026
+
+- Losing every petal in world 2 or later: the end card's big button is **"Try World N again"**. That world starts again from its beginning, with full petals and the skills and XP he had when it began. Bosses he beat stay beaten; words he heard are not said again.
+- **"Start over from World 1"** is the small button beside it. In world 1 there is only "Play again".
+- The place to come back to is remembered while the game is open, not after the browser is closed.

@@ -4,6 +4,7 @@
 import type Phaser from 'phaser';
 import { prepareCreatureLooks, prepareWeaponLook } from '../game/generated';
 import { FINISHED, GameScene, type Finish, type GameData, type Resume } from '../game/GameScene';
+import type { RunState } from '../game/run';
 import { defaultMaker } from '../ai/maker';
 import type { Settings } from '../settings/schema';
 import { decodeSettings, encodeSettings, shareLink } from '../settings/share';
@@ -91,6 +92,8 @@ export function startApp(game: Phaser.Game): void {
       else game.scene.resume(SCENE);
     },
     onReplay: () => current && play(current, trick),
+    // The world he fell in, from its start, at once.
+    onRetry: (run) => current && play(current, undefined, '', { run, direct: true }),
     onNew: () => {
       host.stop();
       // Clear the share link from the address, so a reload starts fresh too.
@@ -188,7 +191,7 @@ export function startApp(game: Phaser.Game): void {
    * With `direct`, there is no title card: play starts at once (after a change), and an
    * adventure carries on from `resume`.
    */
-  function play(settings: Settings, code?: string, notice = '', how: { resume?: Resume; direct?: boolean } = {}): void {
+  function play(settings: Settings, code?: string, notice = '', how: { resume?: Resume; direct?: boolean; run?: RunState } = {}): void {
     host.stop();
     over = false;
     previewKey = '';
@@ -226,7 +229,7 @@ export function startApp(game: Phaser.Game): void {
         !how.direct,
       );
     } else {
-      const data: GameData = how.resume ? { settings, debug, resume: how.resume } : { settings, debug };
+      const data: GameData = how.resume ? { settings, debug, resume: how.resume } : how.run ? { settings, debug, run: how.run } : { settings, debug };
       game.scene.add(SCENE, GameScene, true, data);
       // The game waits behind the title card. Paused here, at once, so that a quick
       // tap on Play can never arrive before the pause does.

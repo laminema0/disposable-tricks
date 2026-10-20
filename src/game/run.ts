@@ -75,6 +75,8 @@ export interface RunState {
   said?: string[];
   /** Worlds whose boss he has beaten: it stays beaten when he comes back along the road. */
   bossDown?: number[];
+  /** The run as this world began: losing every petal starts the world again from here, not world 1 (Amin, 20 Oct). */
+  checkpoint?: RunState;
 }
 
 export function newRun(petals: number): RunState {
@@ -269,7 +271,19 @@ export function planChapter(base: Settings, run: RunState): ChapterPlan {
 /** The gate at the end of a stretch: a detour leads back to the road, a road leads on to the next stretch. */
 export function afterGate(run: RunState, walked: number): RunState {
   if (run.stage === 'street') return { ...run, stage: 'road', returnTo: run.returnTo, distance: run.distance + walked };
-  return { ...run, chapter: Math.min(LAST_LEVEL, run.chapter + 1), stage: 'road', returnTo: undefined, streetsDone: [], found: [], distance: run.distance + walked };
+  const next: RunState = { ...run, chapter: Math.min(LAST_LEVEL, run.chapter + 1), stage: 'road', returnTo: undefined, streetsDone: [], found: [], distance: run.distance + walked };
+  // A new world begins: this is where he comes back to if he falls in it.
+  return { ...next, checkpoint: { ...next, checkpoint: undefined } };
+}
+
+/**
+ * He lost every petal: the world he was in, from its start, with full petals and the skills he had then.
+ * Bosses he beat stay beaten and words he heard are not said again. In world 1 it is simply a new run.
+ */
+export function retryLevel(run: RunState, petals: number): RunState {
+  const start = run.checkpoint;
+  if (!start) return newRun(petals);
+  return { ...start, petals, said: run.said ?? start.said, bossDown: run.bossDown ?? start.bossDown, checkpoint: start };
 }
 
 /** He goes through the detour gate that stands at `x`. */
