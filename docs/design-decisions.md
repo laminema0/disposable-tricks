@@ -253,3 +253,10 @@ Fixed on the way:
 - Our 37 hand-drawn monsters were never shown for written-in monsters (they were built from parts instead).
 - A monster written in could be left off the road.
 - "Giant snail" matched our giant (the troll); describing words no longer choose the drawing.
+
+## The map, the talk, the planting and ramps, 20 October 2026
+
+- **The map closes as easily as it opens:** a touch anywhere, or on the small map again (an × sits there). Before, the lift of the finger that closed it opened it again. Taps on the map no longer turn into a strike.
+- **Taunts are a short held moment:** the first of each kind of monster on a stretch may taunt him as it first notices him, only while it is on screen. The world waits about a second for its line (and a second more if he answers), then goes on. A bubble goes as soon as its monster is gone; the dying line is dropped. The boss keeps its full conversation.
+- **The planting is one bunch:** all the flowers grow together from one spot before the gate, not in a row.
+- **Ramps:** mounds rise from the road on open ground (26–48 px high, gentle slopes up and down), never on a pit, water, a hiding place or under a lamp. The hero and walking monsters follow them; darts, the thrown weapon, dropped water and dust land on them. Stones, living flowers and gates stay on flat road.

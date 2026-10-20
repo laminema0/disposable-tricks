@@ -106,6 +106,12 @@ export class Controls {
     this.keys = input.keyboard?.addKeys('A,D,W,S,J,LEFT,RIGHT,UP,DOWN,SPACE,ENTER') as Keys | undefined;
   }
 
+  /** Forget every finger and any strike waiting: for when the game was covered (the map) and comes back. */
+  reset(): void {
+    this.touches.clear();
+    this.queuedStrike = 0;
+  }
+
   /** Call once per frame. */
   poll(): Intent {
     const intent: Intent = { move: 0, jump: false, lie: false, strike: false, strikeDir: 0 };

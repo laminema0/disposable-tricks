@@ -7,7 +7,7 @@ import { Talk } from './talk';
 import { onLook } from '../ai/look';
 import { isLookFor, prepareCreatureLooks } from './generated';
 import { landIndex, landOf } from './lands';
-import { bossAlone, bossDeath, bossIntro, dyingLine, soldierCount, taunt } from './dialogue';
+import { bossAlone, bossDeath, bossIntro, soldierCount, taunt } from './dialogue';
 import { Controls, type Intent } from '../core/controls';
 import { lightLevelAt } from '../core/light';
 import { makeRng } from '../core/rng';
@@ -26,7 +26,7 @@ import { drawPlantingPlace, ENDING, playHome, playLoss, playWin } from './ending
 import { makeBurst, stepBlooms, type Bloom } from './flowers';
 import { Hero } from './hero';
 import { Hud } from './hud';
-import { addArena, buildLevel, hideSpotAt, isRoof, isShelter, pitAt, waterAt, waterKind, type HideSpot, type Level, type LevelLight, type Water } from './level';
+import { addArena, buildLevel, groundAt, hideSpotAt, isRoof, isShelter, pitAt, waterAt, waterKind, type HideSpot, type Level, type LevelLight, type Water } from './level';
 import { FLOWER_COLOURS, makeLook, toHex, type Look } from './look';
 import { HUNT, MonsterWorld, type Monster, type Shot, type Spawn } from './monsters';
 import { RoleView } from './roleView';
@@ -42,7 +42,7 @@ import { BACK_GATE, chooseGates, worldLayout } from './world';
 import { afterGate, count, detourIndex, enterStreet, gainXp, has, leaveStreet, newRun, planChapter, SKILLS, XP, xpFor, type RunState, type SkillKey } from './run';
 
 /** How often the monsters talk (Amin, 19 Oct: not all of them, and he does not answer all). */
-const TALKING = { taunt: 0.4, answer: 0.5, dying: 0.5 };
+const TALKING = { taunt: 0.4, answer: 0.5, line: 1.3 };
 
 const DEPTH = { sky: -1, moon: 0, hills: 1, glow: 2, heroBehind: 2.5, props: 3, monster: 3.6, hero: 4, ground: 5, front: 6, pool: 7, hud: 100 };
 const WATER_COLOUR = 0xcfdcff;
@@ -214,7 +214,6 @@ export class GameScene extends Phaser.Scene {
   /** Kinds of monster that have already taunted him on this stretch, and when the last remark was. */
   private taunted = new Set<string>();
   private lastRemark = -99;
-  private saidDying = false;
   /** The calm ambient music, one for the whole session (core/music.ts). */
   private music?: Music;
   /** Monsters that already had him last frame, so each speaks once as it finds him. */
@@ -289,6 +288,7 @@ export class GameScene extends Phaser.Scene {
     // Carrying on after a change: nothing new may stand right on top of him.
     const placed = this.previewAt === undefined ? placeMonsters(this.level, rules).filter((spawn) => !this.resume || Math.abs(spawn.x - startX) > 380) : showcase(settings);
     this.world = new MonsterWorld(placed, plan ? { toughness: plan.toughness, pace: plan.pace, sight: plan.sight } : undefined);
+    this.world.setGround((x) => groundAt(this.level, x));
     for (const monster of this.world.monsters) this.addView(monster);
     // A generated look that arrives during play replaces the stand-in shape at once (ai/look.ts).
     prepareCreatureLooks(settings.creatures);
@@ -418,6 +418,7 @@ export class GameScene extends Phaser.Scene {
     if (this.previewAt !== undefined) return this.showPreview(dt);
     if (this.hitStop > 0) {
       this.hitStop -= dt;
+      this.talk?.step(dt, false);
       return;
     }
     // At a gate the world waits for his choice; turning a corner, it waits for the new stretch.
@@ -612,7 +613,7 @@ export class GameScene extends Phaser.Scene {
         this.impact(monster, t.vx > 0 ? 1 : -1, 0.09);
         if (!monster.alive) this.burst(monster);
       }
-      if (hit.length > 0 || t.flown >= WEAPON_USE.throwRange || t.y >= GROUND_Y - 6) {
+      if (hit.length > 0 || t.flown >= WEAPON_USE.throwRange || t.y >= groundAt(this.level, t.x) - 6) {
         t.state = 'fall';
         t.vx = -t.vx * 0.12;
         t.vy = -200;
@@ -628,16 +629,16 @@ export class GameScene extends Phaser.Scene {
       t.vy += 900 * dt;
       t.x += t.vx * dt;
       t.y += t.vy * dt;
-      if (t.y >= GROUND_Y - 4) {
+      if (t.y >= groundAt(this.level, t.x) - 4) {
         // It never lies out of reach: over a pit it comes to rest at the nearer edge.
         const pit = pitAt(this.level, t.x);
         if (pit) t.x = t.x - pit.x0 < pit.x1 - t.x ? pit.x0 - 18 : pit.x1 + 18;
-        t.y = GROUND_Y - 4;
+        t.y = groundAt(this.level, t.x) - 4;
         t.state = 'lie';
         t.spin = 0;
         t.image.setRotation(Math.PI / 2 * (t.vx >= 0 ? 1 : -1));
         // It glows where it lies, under a thin column of light, so he can find it from afar.
-        const pool = this.add.image(t.x, GROUND_Y - 6, 'glow').setDisplaySize(120, 50);
+        const pool = this.add.image(t.x, t.y - 2, 'glow').setDisplaySize(120, 50);
         const column = this.add.image(t.x, GROUND_Y - 70, 'glow').setDisplaySize(16, 150);
         t.glow = [pool, column];
         for (const g of t.glow) g.setTint(this.look.light).setAlpha(0.7).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.glow);
@@ -798,7 +799,7 @@ export class GameScene extends Phaser.Scene {
         this.impact(monster, dart.dir, monster.alive ? 0.035 : 0.08);
         if (!monster.alive) this.burst(monster);
       }
-      if (hit.length > 0 || dart.left <= 0 || dart.y >= GROUND_Y) {
+      if (hit.length > 0 || dart.left <= 0 || dart.y >= groundAt(this.level, dart.x)) {
         dart.left = -1;
         if (dart.blast) this.blast(dart);
       }
@@ -1192,7 +1193,11 @@ export class GameScene extends Phaser.Scene {
     }
     this.guardFlowers();
     this.hud.hideRoad();
-    this.minimap = new MiniMap(this, world, this.look, DEPTH.hud, (open) => (this.mapOpen = open));
+    this.minimap = new MiniMap(this, world, this.look, DEPTH.hud, (open) => {
+      this.mapOpen = open;
+      // Taps on the map are not taps in the game.
+      this.controls.reset();
+    });
     this.dust = this.add
       .rectangle(0, 0, MAX_VIEW_W + 40, VIEW_H + 40, mixColour(this.look.far, 0x8c8272, 0.55), 1)
       .setOrigin(0)
@@ -1445,13 +1450,18 @@ export class GameScene extends Phaser.Scene {
     this.atGate = true;
     const found = Math.min(QUEST.total, this.foundCount());
     const look = this.look;
+    // All of them in one place, as one bunch growing from a single spot (Amin, 20 Oct: a row of seven was a lot).
+    const root = this.goalX - 40;
     for (let i = 0; i < found; i++) {
-      const x = this.goalX - 150 + (i / Math.max(1, found - 1)) * 300;
-      const stem = this.add.rectangle(x, GROUND_Y, 2.5, 34, mixColour(look.prop, 0x6f9a5a, 0.6)).setOrigin(0.5, 1).setDepth(DEPTH.front).setScale(1, 0);
-      const bloom = this.add.image(x, GROUND_Y - 36, 'flower').setDisplaySize(22, 22).setTint(FLOWER_COLOURS[i % FLOWER_COLOURS.length]).setDepth(DEPTH.front).setScale(0);
+      const t = found === 1 ? 0.5 : i / (found - 1);
+      const tilt = (t - 0.5) * 1.1;
+      const long = 34 + Math.sin(t * Math.PI) * 22 + (i % 2) * 6;
+      const stem = this.add.rectangle(root, GROUND_Y, 2.5, long, mixColour(look.prop, 0x6f9a5a, 0.6)).setOrigin(0.5, 1).setRotation(tilt).setDepth(DEPTH.front).setScale(1, 0);
+      const tip = { x: root + Math.sin(tilt) * long, y: GROUND_Y - Math.cos(tilt) * long };
+      const bloom = this.add.image(tip.x, tip.y, 'flower').setDisplaySize(22, 22).setTint(FLOWER_COLOURS[i % FLOWER_COLOURS.length]).setDepth(DEPTH.front + 0.01).setScale(0);
       const k = 22 / bloom.width;
-      this.tweens.add({ targets: stem, scaleY: 1, duration: 420, delay: 200 + i * 130, ease: 'Sine.easeOut' });
-      this.tweens.add({ targets: bloom, scale: k, angle: 72, duration: 520, delay: 420 + i * 130, ease: 'Back.easeOut' });
+      this.tweens.add({ targets: stem, scaleY: 1, duration: 420, delay: 200 + i * 90, ease: 'Sine.easeOut' });
+      this.tweens.add({ targets: bloom, scale: k, angle: 72, duration: 520, delay: 420 + i * 90, ease: 'Back.easeOut' });
     }
     const glow = this.add.image(this.goalX, GROUND_Y - 60, 'glow').setDisplaySize(80, 80).setTint(look.light).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.glow);
     this.tweens.add({ targets: glow, alpha: 0.8, displayWidth: 1100, displayHeight: 900, duration: 1800, delay: 400, ease: 'Sine.easeOut' });
@@ -1562,10 +1572,6 @@ export class GameScene extends Phaser.Scene {
     const x = monster.x;
     const y = monster.y - monster.spec.height / 2;
     this.defeated++;
-    if (!this.saidDying && !monster.boss && !this.soldiers.has(monster) && !this.ending) {
-      this.saidDying = true;
-      if (Math.random() < TALKING.dying) this.talk.remark('monster', dyingLine(this.run.chapter), () => ({ x, y: y - 40 }), 2.6);
-    }
     this.views.get(monster)?.destroy();
     this.views.delete(monster);
     this.puff.explode(this.sneak ? 34 : 24, x, y);
@@ -1637,7 +1643,7 @@ export class GameScene extends Phaser.Scene {
 
   private collectFlowers(dt: number): void {
     const hero = this.hero;
-    const picked = stepBlooms(this.blooms, dt, hero.x, hero.centreY, (x) => pitAt(this.level, x) !== undefined);
+    const picked = stepBlooms(this.blooms, dt, hero.x, hero.centreY, (x) => pitAt(this.level, x) !== undefined, (x) => groundAt(this.level, x));
     for (let i = 0; i < picked; i++) {
       const before = this.health.petals;
       this.health = collectFlower(this.health, this.flowersPerPetal);
@@ -1847,7 +1853,7 @@ export class GameScene extends Phaser.Scene {
   private feel(dt: number): void {
     const hero = this.hero;
     if (hero.events.landed && hero.landSpeed > 260) {
-      this.landDust.explode(Math.round(Phaser.Math.Clamp(hero.landSpeed / 90, 3, 12)), hero.x, GROUND_Y - 2);
+      this.landDust.explode(Math.round(Phaser.Math.Clamp(hero.landSpeed / 90, 3, 12)), hero.x, hero.y - 2);
       if (hero.landSpeed > 650) buzz(BUZZ.land);
     }
     if ((hero.events.struck || hero.events.thrown || hero.events.jumped) && this.controls.askedAt > 0) {
@@ -1874,24 +1880,32 @@ export class GameScene extends Phaser.Scene {
       const has = m.sees || m.exposing || m.state === 'windup' || m.state === 'attack';
       if (has || this.bossStage === 'soldiers') tension = 1;
       else if (m.hunt > 0 || m.notice > 0.05) tension = Math.max(tension, 0.5);
+      // The first of each kind on a stretch may taunt him as it first notices him (Amin, 20 Oct: sooner, never
+      // after it is gone). Only on screen, and as a short held moment: the world waits while it speaks and he answers.
+      const noticing = m.notice > 0.05 || has;
+      const onScreen = m.x > cam.scrollX + 30 && m.x < cam.scrollX + cam.width - 30;
+      if (noticing && onScreen && !m.boss && !this.soldiers.has(m) && !this.taunted.has(m.kind) && this.runTime - this.lastRemark > 9 && !this.ending && !this.talk.blocking) {
+        this.taunted.add(m.kind);
+        if (Math.random() < TALKING.taunt) this.tauntMoment(m);
+      }
       if (has && !this.voiced.has(m)) {
         this.voiced.add(m);
         const voice: Voice = m.kind === 'crawler' ? 'charger' : m.kind === 'thorn' ? 'spitter' : m.kind === 'flyer' ? 'diver' : m.kind === 'stalker' ? 'stalker' : 'watcher';
         this.sfx.at((m.x - middle) / (cam.width / 2), () => this.sfx.voice(voice));
-        // The first of each kind on this stretch taunts him, and he answers.
-        // Only some of them talk (Amin, 19 Oct), and he answers only some of those.
-        if (!m.boss && !this.soldiers.has(m) && !this.taunted.has(m.kind) && this.runTime - this.lastRemark > 9 && !this.ending) {
-          this.taunted.add(m.kind);
-          if (Math.random() < TALKING.taunt) {
-            this.lastRemark = this.runTime;
-            const [them, him] = taunt(m.kind, this.run.chapter);
-            this.talk.remark('monster', them.text, () => ({ x: m.x, y: m.y - m.spec.height - 8 }), 2.8);
-            if (Math.random() < TALKING.answer) this.talk.remark('hero', him.text, () => ({ x: this.hero.x, y: this.hero.y - 118 }), 2.6, 2);
-          }
-        }
       } else if (!has && m.hunt <= 0) this.voiced.delete(m);
     }
     this.music?.setTension(this.ending ? 0 : tension);
+  }
+
+  /** A monster's taunt, and maybe his answer, while the world holds still for a moment. */
+  private tauntMoment(m: Monster): void {
+    this.lastRemark = this.runTime;
+    const [them, him] = taunt(m.kind, this.run.chapter);
+    const answers = Math.random() < TALKING.answer;
+    const alive = () => m.alive;
+    this.talk.remark('monster', them.text, () => ({ x: m.x, y: m.y - m.spec.height - 8 }), TALKING.line, 0, alive);
+    if (answers) this.talk.remark('hero', him.text, () => ({ x: this.hero.x, y: this.hero.y - 118 }), TALKING.line, TALKING.line * 0.85, () => !this.ending);
+    this.hitStop = Math.max(this.hitStop, TALKING.line * (answers ? 1.85 : 1));
   }
 
   private drawTouchMarks(_dt: number): void {
@@ -2126,6 +2140,19 @@ export class GameScene extends Phaser.Scene {
       ground.fillRect(x0, GROUND_Y, x1 - x0, VIEW_H - GROUND_Y);
     }
 
+    // The mounds (level.ts): the same earth, risen, with its top a little lighter where it meets the sky.
+    const gy = (x: number) => groundAt(this.level, x);
+    for (const mound of this.level.mounds) {
+      const points: Phaser.Types.Math.Vector2Like[] = [{ x: mound.x0, y: GROUND_Y + 2 }];
+      for (let x = mound.x0; x <= mound.x1; x += 6) points.push({ x, y: gy(x) });
+      points.push({ x: mound.x1, y: GROUND_Y + 2 });
+      ground.fillStyle(mixColour(look.stage, look.mid, 0.22), 1);
+      ground.fillPoints(points, true);
+      const band = points.slice(1, -1).map((p) => ({ x: p.x, y: p.y + 10 }));
+      ground.fillStyle(mixColour(look.stage, look.mid, 0.12), 1);
+      ground.fillPoints([{ x: mound.x0, y: GROUND_Y + 2 }, ...band, { x: mound.x1, y: GROUND_Y + 2 }], true);
+    }
+
     // How much light reaches a point of the path, so the edge and the flowers can answer it.
     const lights = this.level.lights;
     const lit = (x: number) =>
@@ -2138,7 +2165,7 @@ export class GameScene extends Phaser.Scene {
       if (inPit(x, 0)) continue;
       const amount = lit(x);
       ground.fillStyle(mixColour(rimDark, look.light, amount * 0.8), 0.55 + amount * 0.45);
-      ground.fillRect(x, GROUND_Y, 8, 1.5 + amount * 1.5);
+      ground.fillRect(x, gy(x + 4), 8, 1.5 + amount * 1.5);
     }
 
     // Grass along the edge, in clumps, and the small pale flowers of the road:
@@ -2155,7 +2182,8 @@ export class GameScene extends Phaser.Scene {
         const bx = x + b * 3.2 + rng() * 2;
         const h = 5 + rng() * 13;
         const lean = (rng() - 0.35) * 7;
-        blades.fillTriangle(bx - 1.4, GROUND_Y + 1, bx + 1.4, GROUND_Y + 1, bx + lean, GROUND_Y - h);
+        const by = gy(bx);
+        blades.fillTriangle(bx - 1.4, by + 1, bx + 1.4, by + 1, bx + lean, by - h);
       }
       if (rng() < 0.22) {
         // A dry twig (18 Oct: the only flowers in this world are the ten living ones he looks for).
@@ -2163,9 +2191,10 @@ export class GameScene extends Phaser.Scene {
         const h = 8 + rng() * 10;
         const lean = (rng() - 0.5) * 6;
         flowers.lineStyle(1.2, grass, 1);
-        flowers.lineBetween(fx, GROUND_Y, fx + lean, GROUND_Y - h);
-        flowers.lineBetween(fx + lean * 0.6, GROUND_Y - h * 0.6, fx + lean * 0.6 + 3.5, GROUND_Y - h * 0.85);
-        flowers.lineBetween(fx + lean * 0.4, GROUND_Y - h * 0.4, fx + lean * 0.4 - 3, GROUND_Y - h * 0.6);
+        const fy = gy(fx);
+        flowers.lineBetween(fx, fy, fx + lean, fy - h);
+        flowers.lineBetween(fx + lean * 0.6, fy - h * 0.6, fx + lean * 0.6 + 3.5, fy - h * 0.85);
+        flowers.lineBetween(fx + lean * 0.4, fy - h * 0.4, fx + lean * 0.4 - 3, fy - h * 0.6);
       }
     }
     // A few stones half sunk in the earth.

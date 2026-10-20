@@ -46,6 +46,8 @@ export function stepBlooms(
   heroX: number,
   heroY: number,
   overPit: (x: number) => boolean,
+  /** Where the ground is at x: drops come to rest on a mound too. */
+  ground: (x: number) => number = () => GROUND_Y,
 ): number {
   let picked = 0;
   for (const bloom of blooms) {
@@ -67,8 +69,9 @@ export function stepBlooms(
       bloom.vy += FLOWER.gravity * dt;
       bloom.x += bloom.vx * dt;
       bloom.y += bloom.vy * dt;
-      if (bloom.y >= REST_Y && !overPit(bloom.x)) {
-        bloom.y = REST_Y;
+      const rest = ground(bloom.x) - (GROUND_Y - REST_Y);
+      if (bloom.y >= rest && !overPit(bloom.x)) {
+        bloom.y = rest;
         bloom.landed = true;
       } else if (bloom.y > GROUND_Y + 300) {
         bloom.gone = true; // it fell down a pit

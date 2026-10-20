@@ -8,7 +8,7 @@ import type { Intent } from '../core/controls';
 import type { Side } from '../core/input';
 import { mixColour } from '../core/light';
 import { GROUND_Y, HEALTH, HERO, STRIKE, WEAPON_USE } from './config';
-import { pitAt, type HideSpot, type Level } from './level';
+import { groundAt, pitAt, type HideSpot, type Level } from './level';
 import type { HeroLook } from './look';
 import type { WeaponLook } from '../settings/schema';
 import { recipeTexture } from './recipeDraw';
@@ -442,7 +442,11 @@ export class Hero {
 
     if (this.onGround) {
       if (pitAt(level, nextX)) this.onGround = false;
-      else this.lastSafeX = nextX;
+      else {
+        this.lastSafeX = nextX;
+        // On his feet he follows the ground up and down the slopes of a mound (level.ts).
+        this.y = groundAt(level, nextX);
+      }
       if (Math.abs(this.vx) > 1 && !this.lying) {
         const before = Math.floor(this.runPhase / Math.PI);
         this.runPhase += dt * 13;
@@ -467,8 +471,10 @@ export class Hero {
           nextX = (heading > 0 ? true : heading < 0 ? false : fromRight < fromLeft) ? pitBelow.x1 + 1 : pitBelow.x0 - 1;
         }
       }
-      if (this.y <= GROUND_Y && nextY >= GROUND_Y && !pitAt(level, nextX)) {
-        nextY = GROUND_Y;
+      // He lands wherever the ground is: the road, a slope, the top of a mound.
+      const floor = groundAt(level, nextX);
+      if (this.y <= GROUND_Y + 1 && nextY >= floor && !pitAt(level, nextX)) {
+        nextY = floor;
         this.landSpeed = this.vy;
         this.squashSize = Phaser.Math.Clamp(this.vy / 700, 0.4, 1.4);
         this.vy = 0;

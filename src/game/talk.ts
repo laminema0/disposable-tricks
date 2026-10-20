@@ -26,7 +26,7 @@ export class Talk {
   private readonly name: Phaser.GameObjects.Text;
   private readonly text: Phaser.GameObjects.Text;
   private readonly more: Phaser.GameObjects.Text;
-  private bubbles: { box: Phaser.GameObjects.Container; at: () => { x: number; y: number }; left: number }[] = [];
+  private bubbles: { box: Phaser.GameObjects.Container; at: () => { x: number; y: number }; left: number; alive: () => boolean }[] = [];
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -86,8 +86,9 @@ export class Talk {
   }
 
   /** A short remark over whoever speaks; `at` says where they are now (world position of the top of the head). */
-  remark(who: Speaker, text: string, at: () => { x: number; y: number }, seconds = 2.8, delay = 0): void {
+  remark(who: Speaker, text: string, at: () => { x: number; y: number }, seconds = 2.8, delay = 0, alive: () => boolean = () => true): void {
     const show = () => {
+      if (!alive()) return;
       const colour = this.colourOf(who);
       const label = this.scene.add
         .text(0, 0, text, {
@@ -109,7 +110,7 @@ export class Talk {
       label.setPosition(0, -12);
       const box = this.scene.add.container(0, 0, [back, label]).setDepth(this.depth - 1).setAlpha(0);
       this.scene.tweens.add({ targets: box, alpha: 1, duration: 180 });
-      this.bubbles.push({ box, at, left: seconds });
+      this.bubbles.push({ box, at, left: seconds, alive });
       this.place(box, at);
     };
     if (delay > 0) this.scene.time.delayedCall(delay * 1000, show);
@@ -159,6 +160,11 @@ export class Talk {
   private stepBubbles(dt: number): void {
     for (const b of this.bubbles) {
       b.left -= dt;
+      if (!b.alive() && b.box.active) {
+        b.box.destroy();
+        b.left = -1;
+        continue;
+      }
       this.place(b.box, b.at);
       if (b.left <= 0 && b.box.alpha >= 1) {
         this.scene.tweens.add({ targets: b.box, alpha: 0, duration: 260, onComplete: () => b.box.destroy() });

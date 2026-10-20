@@ -50,6 +50,22 @@ export interface Water {
   x1: number;
 }
 
+/**
+ * A rise in the ground (Amin, 20 Oct: "ramps, not a flat surface all the time"): a slope up, a flat top, a slope
+ * down. Only on open ground: never on a pit, water, a hiding place or under a light.
+ */
+export interface Mound {
+  /** Where its slope starts and where its far slope ends. */
+  x0: number;
+  x1: number;
+  /** How high its top stands above the road, and how long each slope is. */
+  height: number;
+  ramp: number;
+}
+
+/** The sizes mounds come in, and how often a stretch has one. */
+export const MOUND = { height: [26, 48], ramp: [90, 125], top: [60, 170], chance: 0.6, clear: 30 } as const;
+
 export interface Level {
   seed: number;
   width: number;
@@ -59,6 +75,7 @@ export interface Level {
   hideSpots: HideSpot[];
   pits: Pit[];
   waters: Water[];
+  mounds: Mound[];
   /** The boss's clearing, when the game has a boss: where it starts and where the boss stands. */
   arena?: { x0: number; bossX: number };
 }
@@ -204,6 +221,7 @@ export function buildLevel(
     hideSpots: [],
     pits: [],
     waters: [],
+    mounds: [],
   };
   chunks.forEach((type, index) => {
     const left = index * chunkWidth;
@@ -216,7 +234,66 @@ export function buildLevel(
     for (const pit of parts.pits) level.pits.push({ x0: pit.x0 + left, x1: pit.x1 + left });
     for (const water of parts.waters ?? []) level.waters.push({ x0: water.x0 + left, x1: water.x1 + left });
   });
+  placeMounds(level);
   return level;
+}
+
+/** Mounds on open ground; never in the first stretch, where he starts. */
+function placeMounds(level: Level): void {
+  const rng = makeRng(level.seed ^ 0x6d6f756e);
+  const between = (lo: number, hi: number) => lo + rng() * (hi - lo);
+  const busy = [
+    ...level.pits,
+    ...level.waters,
+    ...level.hideSpots,
+    // Only lights that stand on the ground need it flat; fireflies float, and water lies in its pool.
+    ...level.lights.filter((light) => light.kind === 'lamp' || light.kind === 'mirror').map((light) => ({ x0: light.x - 40, x1: light.x + 40 })),
+  ];
+  const free = (x0: number, x1: number) => !busy.some((b) => x1 > b.x0 - MOUND.clear && x0 < b.x1 + MOUND.clear);
+  // Anywhere on the road after the first stretch, across the joins between stretches too, up to about one mound for
+  // every two stretches. Each time: the longest top that fits somewhere, then one of the places it fits.
+  const from = level.chunkWidth;
+  const to = level.chunks.length * level.chunkWidth - 40;
+  const wanted = Math.round((level.chunks.length - 1) * MOUND.chance * 0.85);
+  for (let n = 0; n < wanted; n++) {
+    const height = Math.round(between(MOUND.height[0], MOUND.height[1]));
+    const ramp = Math.round(between(MOUND.ramp[0], MOUND.ramp[1]));
+    let placed = false;
+    for (let top = Math.round(between(MOUND.top[0], MOUND.top[1])); top >= MOUND.top[0] && !placed; top -= 20) {
+      const length = ramp * 2 + top;
+      const fits: number[] = [];
+      for (let x0 = from; x0 + length <= to; x0 += 20) if (free(x0, x0 + length)) fits.push(x0);
+      if (fits.length === 0) continue;
+      const x0 = fits[Math.floor(rng() * fits.length)];
+      const mound = { x0, x1: x0 + length, height, ramp };
+      level.mounds.push(mound);
+      busy.push(mound);
+      placed = true;
+    }
+    if (!placed) break;
+  }
+  level.mounds.sort((a, b) => a.x0 - b.x0);
+}
+
+/** How far the ground rises at x above the road: 0 on flat road. */
+export function riseAt(level: Pick<Level, 'mounds'>, x: number): number {
+  for (const m of level.mounds) {
+    if (x <= m.x0 || x >= m.x1) continue;
+    const up = Math.min(1, (x - m.x0) / m.ramp, (m.x1 - x) / m.ramp);
+    // Eased at the foot and the top, so the slope reads as a hill, not a wedge.
+    return m.height * (up * up * (3 - 2 * up));
+  }
+  return 0;
+}
+
+/** Where the ground is at x (its height on screen). Pits are separate: see pitAt. */
+export function groundAt(level: Pick<Level, 'mounds'>, x: number): number {
+  return GROUND_Y - riseAt(level, x);
+}
+
+/** True when x stands on a mound or its slopes, with some room either side. */
+export function onMound(level: Pick<Level, 'mounds'>, x: number, room = 0): boolean {
+  return level.mounds.some((m) => x > m.x0 - room && x < m.x1 + room);
 }
 
 /**

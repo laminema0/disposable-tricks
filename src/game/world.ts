@@ -19,7 +19,9 @@ export function chooseGates(level: Level, goalX: number, n: number): number[] {
   const free = (x: number) =>
     !level.pits.some((p) => x > p.x0 - 170 && x < p.x1 + 170) &&
     !level.hideSpots.some((h) => x > h.x0 - 130 && x < h.x1 + 130) &&
-    !level.waters.some((w) => x > w.x0 - 90 && x < w.x1 + 90);
+    !level.waters.some((w) => x > w.x0 - 90 && x < w.x1 + 90) &&
+    // Gates stand on flat road, never on a mound (level.ts).
+    !(level.mounds ?? []).some((m) => x > m.x0 - 120 && x < m.x1 + 120);
   const rng = makeRng(level.seed ^ 0x57ee7);
   let places: number[] = [];
   for (let x = 900; x < goalX - 760; x += 140) if (free(x)) places.push(x);

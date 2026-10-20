@@ -53,6 +53,7 @@ export function placeQuest(level: Level, goalX: number, detours: number, keep: r
   const rng = makeRng((level.seed ^ 0xf10e3) >>> 0);
   const free = (x: number) =>
     !level.pits.some((p) => x > p.x0 - 60 && x < p.x1 + 60) &&
+    !(level.mounds ?? []).some((m) => x > m.x0 - 40 && x < m.x1 + 40) &&
     !level.waters.some((w) => x > w.x0 - 30 && x < w.x1 + 30) &&
     !keep.some((k) => Math.abs(x - k) < 110);
   let spots: number[] = [];

@@ -71,7 +71,8 @@ export class MiniMap {
       .setScrollFactor(0)
       .setDepth(depth + 0.01);
     this.hit = scene.add.zone(0, 0, R * 2, R * 2).setScrollFactor(0).setDepth(depth + 0.02).setInteractive({ useHandCursor: true });
-    this.hit.on('pointerup', () => this.toggle());
+    // On the way down, like closing it: before, the lift of the finger that closed the map opened it again.
+    this.hit.on('pointerdown', () => this.toggle());
     this.layout();
   }
 
@@ -136,13 +137,22 @@ export class MiniMap {
     this.count.setText(`${count} / ${QUEST.needed}`).setColor(count >= QUEST.needed ? '#ffe9a8' : '#f4f4ee');
   }
 
+  /** When the whole map last opened, so the touch that opened it does not also close it. */
+  private openedAt = 0;
+  private closedAt = -1000;
+
   private toggle(): void {
+    const now = this.scene.time.now;
+    if (this.big && now - this.openedAt < 250) return;
+    if (!this.big && now - this.closedAt < 300) return;
     if (this.big) {
       this.big.destroy();
       this.big = undefined;
+      this.closedAt = now;
       this.onOpen(false);
     } else {
       this.openBig();
+      this.openedAt = this.scene.time.now;
       this.onOpen(true);
     }
   }
@@ -154,7 +164,8 @@ export class MiniMap {
     const w = scene.scale.width;
     const h = scene.scale.height;
     const shade = scene.add.rectangle(0, 0, w, h, 0x05070f, 0.82).setOrigin(0).setInteractive();
-    shade.on('pointerup', () => this.toggle());
+    // A touch anywhere closes it, on the way down (Amin, 20 Oct: it was hard to close).
+    shade.on('pointerdown', () => this.toggle());
     const g = scene.add.graphics();
     const north = Math.max(...this.world.detours.map((d) => d.width), 1);
     const east = this.world.road.level.width;
@@ -172,8 +183,10 @@ export class MiniMap {
     const style = { fontFamily: '"Instrument Sans", system-ui, sans-serif', fontSize: '13px', color: '#c9cbd6' };
     const count = this.foundCount(this.last.found);
     const title = scene.add.text(w / 2, 22, `The map · ${count} of ${QUEST.total} flowers found, ${QUEST.needed} to plant`, { ...style, color: '#f4f4ee' }).setOrigin(0.5, 0);
-    const close = scene.add.text(w / 2, h - 26, 'Tap to close', style).setOrigin(0.5, 0);
-    this.big = scene.add.container(0, 0, [shade, g, title, close]).setScrollFactor(0).setDepth(this.depth + 5);
+    const close = scene.add.text(w / 2, h - 26, 'Tap anywhere to close', style).setOrigin(0.5, 0);
+    // An × where the small map sits, for the finger that taps the map again to close it.
+    const cross = scene.add.text(this.cx, this.cy, '×', { ...style, fontSize: '30px', color: '#f4f4ee' }).setOrigin(0.5);
+    this.big = scene.add.container(0, 0, [shade, g, title, close, cross]).setScrollFactor(0).setDepth(this.depth + 5);
   }
 
   /** The middle of the circle, on the screen. */

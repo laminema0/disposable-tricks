@@ -214,6 +214,7 @@ Ten wishes, sent exactly as the game sends them, each script test-run in the loc
 | 2.24 | Centred picture menus | Done | 20 Oct: weapon tiles as pictures, monsters shown as silhouettes, title card "Disposable Tricks" + one line + Play + Back, pause menu with icon buttons and volume, game blurred behind menus (src/ui/icons.ts, pick.ts, cards.ts). |
 | 5.3 | First deploy | Done | 20 Oct: live at https://disposable-tricks.pages.dev (Cloudflare Pages + Pages Function); AI answers online (Groq). Update with npm run deploy (npm.cmd in PowerShell). |
 | 2.25 | Monsters generated on request | Done locally | 20 Oct: /api/look (FLUX.1 schnell silhouettes, cached 60 days), cut-out in the browser, shown as drawings, live swap; fixed: drawings never shown for written-in monsters, written-in monsters left off the road, "giant X" matching the troll. Not yet deployed. |
+| 2.26 | Map closing, held taunts, one planting bunch, ramps | Done locally | 20 Oct: map opens and closes on touch-down (fixed reopen on finger lift); taunts as a ~1.3 s held moment on first notice, bubbles die with their monster, no dying line; flowers planted as one bunch; mounds (level.ts groundAt) for hero, monsters, darts, drops. Bots in tests/sim do not climb mounds yet. |
 
 ## 3. The AI
 
@@ -254,6 +255,7 @@ Ten wishes, sent exactly as the game sends them, each script test-run in the loc
 | 5.2 | Move the project into its own repository | Not started | Steps are in launch.md section 4. Nothing is committed anywhere yet. |
 | 5.3 | Hosting on a free static host | Partly | Cloudflare Pages chosen and its config files are in place. Account and first deploy: action A3. |
 | 2.25 | Monsters generated on request | Done locally | 20 Oct: /api/look (FLUX.1 schnell silhouettes, cached 60 days), cut-out in the browser, shown as drawings, live swap; fixed: drawings never shown for written-in monsters, written-in monsters left off the road, "giant X" matching the troll. Not yet deployed. |
+| 2.26 | Map closing, held taunts, one planting bunch, ramps | Done locally | 20 Oct: map opens and closes on touch-down (fixed reopen on finger lift); taunts as a ~1.3 s held moment on first notice, bubbles die with their monster, no dying line; flowers planted as one bunch; mounds (level.ts groundAt) for hero, monsters, darts, drops. Bots in tests/sim do not climb mounds yet. |
 | 5.4 | "Turn your phone" screen and Add to Home Screen | Done | iPhones cannot lock rotation or go full screen from a web page, so the turn screen stays necessary there. |
 | 5.5 | Privacy page and 16+ label | Done | The page now says that choices and written wishes go to our server and on to an AI service, and that nothing is stored. Contact line still open (D7). |
 | 5.6 | Test with 5 to 10 players aged 16+ | Not started | |

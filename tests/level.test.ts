@@ -73,3 +73,25 @@ describe('pits (Amin, 19 Oct: "the holes in the game are not a lot")', () => {
     }
   });
 });
+
+describe('mounds (Amin, 20 Oct: ramps, not flat all the time)', async () => {
+  const { groundAt, riseAt } = await import('../src/game/level');
+  it('rise from the road and come back down, only on open ground', () => {
+    let total = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const level = buildLevel(seed);
+      total += level.mounds.length;
+      for (const m of level.mounds) {
+        expect(m.x0).toBeGreaterThanOrEqual(level.chunkWidth); // never in the first stretch, where he starts
+        expect(m.x1).toBeLessThanOrEqual(level.chunks.length * level.chunkWidth); // never in the end clearing
+        expect(riseAt(level, m.x0)).toBe(0);
+        expect(riseAt(level, (m.x0 + m.x1) / 2)).toBeCloseTo(m.height, 5);
+        expect(groundAt(level, (m.x0 + m.x1) / 2)).toBeLessThan(groundAt(level, m.x0 - 10));
+        const clash = [...level.pits, ...level.waters, ...level.hideSpots].some((b) => m.x1 > b.x0 && m.x0 < b.x1);
+        expect(clash, `seed ${seed}`).toBe(false);
+        expect(level.lights.some((l) => (l.kind === 'lamp' || l.kind === 'mirror') && l.x > m.x0 - 20 && l.x < m.x1 + 20), `seed ${seed}`).toBe(false);
+      }
+    }
+    expect(total).toBeGreaterThan(40);
+  });
+});

@@ -323,7 +323,8 @@ export function watcherEye(m: Monster): { x: number; y: number } {
 
 /** How steeply a beam slants down, so that an eye held high still finds him on the ground. */
 export function beamTilt(m: Monster): number {
-  const up = GROUND_Y - watcherEye(m).y;
+  // How high the eye is held above the monster's own feet (it may stand on a mound).
+  const up = m.y - watcherEye(m).y;
   return Math.max(0, (up - 46) / 250);
 }
 
@@ -347,12 +348,20 @@ export function inBeam(m: Monster, x: number, y: number): boolean {
 export class MonsterWorld {
   readonly monsters: Monster[];
   readonly shots: Shot[] = [];
+  /** Where the ground is at x: the road, or higher on a mound (level.ts groundAt). Flat unless the scene says. */
+  ground: (x: number) => number = () => GROUND_Y;
 
   constructor(
     spawns: readonly Spawn[],
     private readonly grow: Growth = { toughness: 0, pace: 1, sight: 1 },
   ) {
     this.monsters = spawns.map((spawn, id) => this.make(spawn, id));
+  }
+
+  /** The shape of the ground (level.ts groundAt): walkers stand on it from now on. */
+  setGround(ground: (x: number) => number): void {
+    this.ground = ground;
+    for (const m of this.monsters) if (!m.spec.fly && m.kind !== 'flyer') m.y = ground(m.x);
   }
 
   /** More monsters join (a boss calls its soldiers). Returns them. */
@@ -385,7 +394,7 @@ export class MonsterWorld {
         swipeIn: 0,
         swipeT: 0,
         x: spawn.x,
-        y: GROUND_Y - (spec.fly ?? 0),
+        y: (spec.fly ? GROUND_Y : this.ground(spawn.x)) - (spec.fly ?? 0),
         homeX: spawn.x,
         minX: spawn.minX,
         maxX: spawn.maxX,
@@ -468,6 +477,8 @@ export class MonsterWorld {
       else if (m.kind === 'flyer') this.stepFlyer(m, dt, lit, out);
       else this.stepStalker(m, dt, lit, out);
       if (m.also) this.stepAlso(m, dt, lit, out);
+      // Walkers keep their feet on the ground, up and down the slopes of a mound.
+      if (!m.spec.fly && m.kind !== 'flyer') m.y = this.ground(m.x);
       // Bumping into a monster always hurts (Amin, 19 Oct), whether or not it had noticed him, and it has him
       // at once: it turns on him and attacks. Only lying hidden in cover does it pass over him.
       // A monster at rest after its attack is spent: bumping into it only pushes him back (Amin, 19 Oct).
@@ -497,7 +508,7 @@ export class MonsterWorld {
       shot.x += shot.vx * dt;
       shot.y += shot.vy * dt;
       shot.age += dt;
-      if (shot.y >= GROUND_Y || shot.age > MOVES.thorn.shotLife) shot.dead = true;
+      if (shot.y >= this.ground(shot.x) || shot.age > MOVES.thorn.shotLife) shot.dead = true;
       else if (overlap({ x0: shot.x - 5, x1: shot.x + 5, y0: shot.y - 5, y1: shot.y + 5 }, body)) {
         shot.dead = true;
         out.hurt = true;
@@ -644,7 +655,7 @@ export class MonsterWorld {
         // It dives to where he stood when it flashed; it does not follow him after.
         m.ax = m.x;
         m.ay = m.y;
-        m.by = GROUND_Y;
+        m.by = this.ground(m.bx);
         m.facing = m.bx >= m.ax ? 1 : -1;
         this.enter(m, 'attack');
         out.sounds.push('swoop');
@@ -658,7 +669,7 @@ export class MonsterWorld {
       if (k >= 1) this.enter(m, 'rest');
     } else if (m.state === 'rest') {
       // Stuck on the ground for a moment, within reach of his blade. Harmless while it struggles.
-      m.y = GROUND_Y;
+      m.y = this.ground(m.x);
       if (m.t >= move.stuck) this.enter(m, 'recover');
     } else {
       const k = 1 - Math.exp(-3 * dt);
