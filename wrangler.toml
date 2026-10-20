@@ -10,3 +10,8 @@ compatibility_date = "2026-10-12"
 AI_ORDER = "groq,cloudflare"
 # The most real AI calls per minute, for all players together. Protects the free limits.
 MAX_CALLS_PER_MINUTE = "8"
+
+# Every generated monster and weapon look, kept for good so it is made only once (server/src/look.ts).
+[[kv_namespaces]]
+binding = "LOOKS"
+id = "ecf0e8934f3e47bcb86038b16c82509e"

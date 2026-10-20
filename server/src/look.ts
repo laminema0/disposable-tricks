@@ -77,6 +77,16 @@ function json(body: Reply, status = 200, keep = 0): Response {
   });
 }
 
+/** The lasting store of every look made (Cloudflare KV, binding LOOKS in wrangler.toml), when there is one. */
+interface LookStore {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string): Promise<void>;
+}
+function lookStore(env: Env): LookStore | undefined {
+  const store = (env as unknown as { LOOKS?: LookStore }).LOOKS;
+  return store && typeof store.get === 'function' ? store : undefined;
+}
+
 /** The shared cache of this place on Cloudflare, when there is one (not in tests or the dev server). */
 function edgeCache(): Cache | undefined {
   const store = (globalThis as { caches?: { default?: Cache } }).caches;
@@ -94,6 +104,15 @@ export async function handleLook(request: Request, env: Env, doFetch: typeof fet
   const key = new Request(`https://looks.disposable-tricks.internal/v1/${kind}/${encodeURIComponent(name)}`);
   const kept = await cache?.match(key);
   if (kept) return kept;
+  // Made before, by anyone: from the lasting store, at no cost.
+  const store = lookStore(env);
+  const storeKey = `${kind}/${name}`;
+  const stored = await store?.get(storeKey).catch(() => null);
+  if (stored) {
+    const reply = json({ ok: true, image: stored }, 200, LOOK.keepSeconds);
+    await cache?.put(key, reply.clone()).catch(() => undefined);
+    return reply;
+  }
 
   const account = env.CLOUDFLARE_ACCOUNT_ID;
   const token = env.CLOUDFLARE_API_TOKEN;
@@ -120,8 +139,10 @@ export async function handleLook(request: Request, env: Env, doFetch: typeof fet
       const data = (await res.json().catch(() => undefined)) as { result?: { image?: unknown } } | undefined;
       const image = data?.result?.image;
       if (!res.ok || typeof image !== 'string' || image.length < 1000) continue;
-      const reply = json({ ok: true, image: `data:image/jpeg;base64,${image}` }, 200, LOOK.keepSeconds);
+      const dataUrl = `data:image/jpeg;base64,${image}`;
+      const reply = json({ ok: true, image: dataUrl }, 200, LOOK.keepSeconds);
       await cache?.put(key, reply.clone()).catch(() => undefined);
+      await store?.put(storeKey, dataUrl).catch(() => undefined);
       return reply;
     }
     return json({ ok: false, reason: 'failed' }, 502);

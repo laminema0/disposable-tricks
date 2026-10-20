@@ -246,7 +246,7 @@ Amin: "The whole point of the game is that people can customise it in real time.
 - **The picture:** Cloudflare's image model (FLUX.1 schnell) draws a solid black silhouette of it on white in about 1–2.5 seconds (server/src/look.ts, at /api/look).
 - **The cut-out:** in the browser the creature is cut out, specks and soft shadows are dropped, it is turned to face the right way, and its eye is put on its head (src/ai/silhouette.ts).
 - **In the game:** it is shown like our hand-drawn monsters, with dark fill, a rim of light and glowing eyes (src/game/generated.ts). It is asked for as soon as it is named, so it is usually ready by Play. If not, its stand-in is swapped for it the moment it arrives.
-- **Kept:** each look is kept by name on Cloudflare (60 days) and on the device (the last 40), so it is made once and looks the same after.
+- **Kept:** each look is kept for good in Cloudflare KV (binding LOOKS), in the edge cache, and on the device (the last 40), so it is made once and looks the same after, even when the daily allowance is spent.
 - **Limits:** about 230 new monsters a day on the free plan; at most 10 a minute. Unsafe names are refused by the same filter as written wishes.
 
 Fixed on the way:

@@ -151,3 +151,25 @@ describe('our own weapons keep our drawings (20 Oct: the Gun was generated, too 
     expect(isOurWeapon(w('Happens', 'club'))).toBe(false);
   });
 });
+
+describe('every look is kept for good (Cloudflare KV)', async () => {
+  const { handleLook } = await import('../server/src/look');
+  it('is made once; after that it comes from the store, with no new picture', async () => {
+    const kept = new Map<string, string>();
+    const LOOKS = { get: async (k: string) => kept.get(k) ?? null, put: async (k: string, v: string) => void kept.set(k, v) };
+    let made = 0;
+    const fake = (async () => {
+      made++;
+      return new Response(JSON.stringify({ result: { image: 'B'.repeat(2000) } }));
+    }) as unknown as typeof fetch;
+    const env = { CLOUDFLARE_ACCOUNT_ID: 'a', CLOUDFLARE_API_TOKEN: 't', LOOKS } as unknown as Record<string, string>;
+    const post = () => new Request('https://x.test/api/look', { method: 'POST', body: JSON.stringify({ name: 'Rubber duck', kind: 'weapon' }) });
+    expect((await (await handleLook(post(), env, fake, 100)).json()).ok).toBe(true);
+    expect(kept.has('weapon/rubber duck')).toBe(true);
+    // Even with the image model out of its daily allowance, a kept look is still there.
+    const spent = (async () => new Response('{}', { status: 429 })) as unknown as typeof fetch;
+    const again = await (await handleLook(post(), env, spent, 200)).json();
+    expect(again.ok).toBe(true);
+    expect(made).toBe(1);
+  });
+});
