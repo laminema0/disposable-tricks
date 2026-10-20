@@ -129,7 +129,8 @@ export const HUNT = {
 export const NOTICE = {
   /** Seconds to be sure of him right in front of it, and at the far edge of its sight. */
   near: 0.35,
-  far: 1.2,
+  // Quicker at the edge of its sight than before (was 1.2 s: monsters often missed him, Amin, 20 Oct).
+  far: 0.8,
   /** How fast certainty drains once he is out of its sight, per second. */
   drain: 0.9,
 };
@@ -141,9 +142,9 @@ export const NOTICE = {
  */
 export const SENSE = {
   /** How close he must be, in pixels. */
-  range: 240,
+  range: 260,
   /** Seconds it takes to be sure of him by sensing alone. */
-  time: 3,
+  time: 1.6,
 };
 
 /** How much the monsters have grown with his skills (run.ts, threat). */
@@ -447,7 +448,10 @@ export class MonsterWorld {
       }
       // Seen = lit, not hidden, and inside the shape this monster's eye throws.
       // A merge sees in both of its ways; one with a beam also sees whoever stands in it.
-      const within = (m.sight !== undefined && inSight(m.sight, m, target)) || (m.extraSight !== undefined && inSight(m.extraSight, m, target));
+      // Its gaze follows the ground: standing on a mound does not lift him out of a walker's sight (20 Oct).
+      const lift = m.spec.fly ? 0 : this.ground(m.x) - this.ground(hero.x);
+      const seen = lift ? { ...target, top: target.top + lift, bottom: target.bottom + lift } : target;
+      const within = (m.sight !== undefined && inSight(m.sight, m, seen)) || (m.extraSight !== undefined && inSight(m.extraSight, m, seen));
       const glimpse = (monsterSees({ light: lit.light, hidden: hero.hidden, distance: hero.x - m.x, range: m.spec.sight }) && within) || (m.also === 'watcher' && m.exposing);
       // It fills with certainty while he is in sight (faster when he is close), and acts only once it is sure.
       // Already hunting him, it is sure again at once.

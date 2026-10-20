@@ -70,10 +70,14 @@ export interface RunState {
   returnTo?: { x: number };
   /** Detours already walked on this stretch, by their place on the road, so each is entered once. */
   streetsDone: number[];
+  /** Words already said on this run ("boss:2", "taunt:1"): every conversation is heard once (Amin, 20 Oct). */
+  said?: string[];
+  /** Worlds whose boss he has beaten: it stays beaten when he comes back along the road. */
+  bossDown?: number[];
 }
 
 export function newRun(petals: number): RunState {
-  return { chapter: 1, stage: 'road', distance: 0, petals, flowers: 0, defeated: 0, upgrades: [], xp: 0, throws: 0, found: [], planted: 0, streetsDone: [] };
+  return { chapter: 1, stage: 'road', distance: 0, petals, flowers: 0, defeated: 0, upgrades: [], xp: 0, throws: 0, found: [], planted: 0, streetsDone: [], said: [], bossDown: [] };
 }
 
 export function has(run: RunState, key: SkillKey): boolean {

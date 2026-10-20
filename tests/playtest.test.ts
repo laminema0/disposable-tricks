@@ -11,8 +11,9 @@ describe('difficulty of the first road, played by bots', () => {
     if (process.env.PLAYTEST) console.table(rows.map(({ causes, ...r }) => ({ ...r, causes: JSON.stringify(causes) })));
     const by = Object.fromEntries(rows.map((r) => [r.skill, r]));
     expect(by.skilled.winRate).toBeGreaterThanOrEqual(0.75);
-    expect(by.average.winRate).toBeGreaterThanOrEqual(0.5);
-    expect(by.novice.winRate).toBeGreaterThanOrEqual(0.5);
+    // 20 Oct: monsters notice him sooner (Amin: they often missed him), so the bots, who never hide, do a little worse.
+    expect(by.average.winRate).toBeGreaterThanOrEqual(0.42);
+    expect(by.novice.winRate).toBeGreaterThanOrEqual(0.42);
     // Pits are part of it, but rarely the end of a run.
     expect(by.skilled.falls).toBeLessThan(0.6);
   });

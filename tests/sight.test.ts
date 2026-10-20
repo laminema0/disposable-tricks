@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GROUND_Y } from '../src/game/config';
-import { heroTarget, MonsterWorld, type HeroState } from '../src/game/monsters';
+import { heroTarget, MonsterWorld, SENSE, type HeroState } from '../src/game/monsters';
 import { inSight, SIGHTS, sightPolygons, type Seer, type SightShape } from '../src/game/sight';
 
 const G = GROUND_Y;
@@ -59,12 +59,13 @@ describe('passing a monster without a weapon', () => {
   const DT = 1 / 60;
   const lit = (x: number, over: Partial<HeroState> = {}): HeroState => ({ x, y: G, centreY: G - 55, lying: false, hidden: false, light: 0.9, ...over });
 
-  it('he crawls right up to a Stalker, in full light, and is never seen or hurt', () => {
+  it('he crawls up to the edge of what a Stalker senses, in full light, and is never seen or hurt', () => {
     const world = new MonsterWorld([{ kind: 'stalker', x: 1000, minX: 540, maxX: 1460 }]);
     let hurt = false;
     let seen = false;
     // From well in front of it to just short of its body, at crawling speed (bumping into it would hurt).
-    const edge = 1000 - world.monsters[0].spec.halfW - 20;
+    // Up to the edge of what it senses (20 Oct: closer than that, it notices him even lying flat).
+    const edge = 1000 - SENSE.range - 10;
     for (let x = 700; x < edge; x += 70 * DT) {
       const result = world.step(DT, lit(x, { lying: true, centreY: G - 24 }));
       hurt ||= result.hurt;

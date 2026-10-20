@@ -270,3 +270,11 @@ Measured on 40 things we have not drawn, through the real pipeline (generate, re
 - **Weapons: 20 of 20,** after a fix. Frying pan, umbrella, banana, guitar, baseball bat, chainsaw, trident, boomerang, magic wand, laser sword, fish, broom, shovel, water pistol, crossbow, whip, katana, hockey stick, rubber duck, chair. The first run got 15 of 20: long, thin weapons were thrown away by the cut-out as too small, and a boxy toaster as "just a box".
 - **Speed:** 1.8 s on average for a new look; instant once kept.
 - **Rougher results:** the guitar reads more like a blade and the crossbow is odd. They are usable, but not as clear as the rest.
+
+## Once is enough, 20 October 2026
+
+- **Every conversation is heard once on a run:** the boss's words, its "face me yourself", its last words, and the one taunt of a world. Coming back along the road (after a detour, or turning back for flowers) they are not heard again.
+- **A beaten boss stays beaten** for the rest of the run, even when the road is built again on his way back.
+- **Monsters notice him more surely:** a monster's gaze follows the ground, so standing on a mound no longer lifts him out of a low monster's sight; at the edge of its sight it is sure of him in 0.8 s (was 1.2); close by (260 px) it senses him in 1.6 s (was 3), even in the dark.
+- **Through any gate, a plain fade.** The turning world is no longer used.
+- **Breakable stones are bigger and easier to see:** lighter than the ground, with glowing cracks and a soft glow.

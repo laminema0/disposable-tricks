@@ -42,6 +42,12 @@ import { BACK_GATE, chooseGates, worldLayout } from './world';
 import { afterGate, count, detourIndex, enterStreet, gainXp, has, leaveStreet, newRun, planChapter, SKILLS, XP, xpFor, type RunState, type SkillKey } from './run';
 
 /** How often the monsters talk (Amin, 19 Oct: not all of them, and he does not answer all). */
+/** Gates fade out and in; the turning camera (corner.ts) is kept but not used (Amin, 20 Oct). */
+const FADE_ONLY = true;
+
+/** The size of a breakable stone: half its width, and its height. */
+const STONE = { half: 38, height: 44 };
+
 const TALKING = { taunt: 0.5, answer: 0.4, line: 1.3 };
 
 const DEPTH = { sky: -1, moon: 0, hills: 1, glow: 2, heroBehind: 2.5, props: 3, monster: 3.6, hero: 4, ground: 5, front: 6, pool: 7, hud: 100 };
@@ -288,7 +294,12 @@ export class GameScene extends Phaser.Scene {
     const placed = this.previewAt === undefined ? placeMonsters(this.level, rules).filter((spawn) => !this.resume || Math.abs(spawn.x - startX) > 380) : showcase(settings);
     this.world = new MonsterWorld(placed, plan ? { toughness: plan.toughness, pace: plan.pace, sight: plan.sight } : undefined);
     this.world.setGround((x) => groundAt(this.level, x));
-    for (const monster of this.world.monsters) this.addView(monster);
+    // A boss already beaten on this run stays beaten when he comes back along this road.
+    if (this.run.stage === 'road' && (this.run.bossDown ?? []).includes(this.run.chapter)) {
+      for (const monster of this.world.monsters) if (monster.boss) monster.alive = false;
+      this.bossStage = 'dead';
+    }
+    for (const monster of this.world.monsters) if (monster.alive) this.addView(monster);
     // A generated look that arrives during play replaces the stand-in shape at once (ai/look.ts).
     prepareCreatureLooks(settings.creatures);
     const stopLooks = onLook((look) => {
@@ -852,17 +863,20 @@ export class GameScene extends Phaser.Scene {
     if (this.bossStage === 'none' && boss.alive && this.hero.x > arena.x0 + 40) {
       this.bossStage = 'intro';
       boss.boss.waiting = true;
-      this.talk.say(bossIntro(chapter), () => this.callSoldiers(boss));
+      // Its words are heard once on a run; met again (back from a detour), it just calls its soldiers.
+      if (this.sayOnce(`boss:${chapter}`)) this.talk.say(bossIntro(chapter), () => this.callSoldiers(boss));
+      else this.callSoldiers(boss);
     } else if (this.bossStage === 'soldiers' && [...this.soldiers].every((m) => !m.alive)) {
       this.bossStage = 'duel';
       boss.boss.waiting = false;
       this.fightMood(false);
-      this.talk.say(bossAlone(chapter));
+      if (this.sayOnce(`boss-alone:${chapter}`)) this.talk.say(bossAlone(chapter));
     }
     if (!boss.alive && this.bossStage !== 'dead' && this.bossStage !== 'none') {
       this.bossStage = 'dead';
       this.fightMood(false);
-      this.talk.say(bossDeath(chapter));
+      this.run = { ...this.run, bossDown: [...(this.run.bossDown ?? []), chapter] };
+      if (this.sayOnce(`boss-death:${chapter}`)) this.talk.say(bossDeath(chapter));
     }
   }
 
@@ -1091,7 +1105,7 @@ export class GameScene extends Phaser.Scene {
       });
     } else if (this.turnIn) {
       this.cameras.main.fadeIn(520, 7, 10, 20);
-    } else if (this.run.chapter > 1 || this.resume) {
+    } else if (this.run.chapter > 1 || this.resume || this.run.stage === 'street') {
       this.cameras.main.fadeIn(420, 7, 10, 20);
     }
     this.tellStory();
@@ -1146,6 +1160,14 @@ export class GameScene extends Phaser.Scene {
       const start = () => (game.scene.keys[key] ? setTimeout(start, 16) : game.scene.add(key, GameScene, true, data));
       setTimeout(start, 0);
     };
+    // Through any gate, a plain fade (Amin, 20 Oct: no turning of the world).
+    if (turn !== 0 && FADE_ONLY) {
+      this.coachText?.setVisible(false);
+      this.bossHint?.setVisible(false);
+      cam.fadeOut(420, 7, 10, 20);
+      cam.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, swap);
+      return;
+    }
     if (turn !== 0) {
       // Through a gate: he stands up, and the camera turns round him (corner.ts).
       this.hero.lying = false;
@@ -1293,18 +1315,26 @@ export class GameScene extends Phaser.Scene {
     const g = this.add.graphics().setDepth(DEPTH.props + 0.2).setPosition(stone.x, GROUND_Y);
     const rng = makeRng(this.level.seed ^ Math.round(stone.x));
     const points: Phaser.Math.Vector2[] = [];
-    for (let i = 0; i <= 9; i++) {
-      const a = Math.PI + (i / 9) * Math.PI;
-      const r = 1 + (rng() - 0.5) * 0.25;
-      points.push(new Phaser.Math.Vector2(Math.cos(a) * 26 * r, Math.sin(a) * 30 * r + 2));
+    // Bigger and lighter than the dark around it, with cracks that glow (Amin, 20 Oct: the stones were hard to see).
+    const R = STONE.half;
+    for (let i = 0; i <= 11; i++) {
+      const a = Math.PI + (i / 11) * Math.PI;
+      const r = 1 + (rng() - 0.5) * 0.22;
+      points.push(new Phaser.Math.Vector2(Math.cos(a) * R * r, Math.sin(a) * STONE.height * r + 2));
     }
-    g.fillStyle(mixColour(look.prop, look.mid, 0.35), 1);
+    const glow = this.add.image(stone.x, GROUND_Y - STONE.height * 0.45, 'glow').setDisplaySize(R * 3.4, STONE.height * 2.4).setTint(look.light).setAlpha(0.22).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH.props + 0.19);
+    this.tweens.add({ targets: glow, alpha: 0.1, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    g.once(Phaser.GameObjects.Events.DESTROY, () => glow.destroy());
+    g.fillStyle(mixColour(look.prop, look.light, 0.28), 1);
     g.fillPoints(points, true);
-    // Its cracks, pale, so it reads as something that can be broken.
-    g.lineStyle(1.4, mixColour(look.mid, look.light, 0.45), 0.8);
-    g.lineBetween(-4, -26, 2, -14);
-    g.lineBetween(2, -14, -6, -6);
-    g.lineBetween(2, -14, 12, -10);
+    // A lighter top where the light falls on it.
+    g.fillStyle(mixColour(look.prop, look.light, 0.45), 0.6);
+    g.fillEllipse(-R * 0.15, -STONE.height * 0.72, R * 1.1, STONE.height * 0.35);
+    // Its cracks, glowing, so it reads as something that can be broken.
+    g.lineStyle(2.2, look.light, 0.85);
+    g.lineBetween(-5, -STONE.height + 4, 3, -STONE.height * 0.5);
+    g.lineBetween(3, -STONE.height * 0.5, -8, -STONE.height * 0.2);
+    g.lineBetween(3, -STONE.height * 0.5, R * 0.55, -STONE.height * 0.35);
     this.stoneViews.set(stone.id, { stone, view: g, hits: QUEST.stoneHits, last: -1 });
   }
 
@@ -1313,7 +1343,7 @@ export class GameScene extends Phaser.Scene {
     let hitAny = false;
     for (const entry of [...this.stoneViews.values()]) {
       const { stone, view } = entry;
-      if (zone.x1 < stone.x - 26 || zone.x0 > stone.x + 26 || zone.y1 < GROUND_Y - 34 || zone.y0 > GROUND_Y) continue;
+      if (zone.x1 < stone.x - STONE.half || zone.x0 > stone.x + STONE.half || zone.y1 < GROUND_Y - STONE.height - 4 || zone.y0 > GROUND_Y) continue;
       if (entry.last === strikeId) continue;
       entry.last = strikeId;
       hitAny = true;
@@ -1506,6 +1536,14 @@ export class GameScene extends Phaser.Scene {
     });
     this.time.delayedCall(ENDING.bloomAt * 1000, () => this.level.lights.push({ kind: 'lamp', strong: true, x, y: GROUND_Y - 60, ...ENDING.bloomLight }));
     playWin(this, x, this.look, DEPTH, { ...hero.kneelingHead, facing: hero.facing, armed: this.look.hero.sword });
+  }
+
+  /** True once these words have been said on this run; marks them said. */
+  private sayOnce(key: string): boolean {
+    const said = this.run.said ?? [];
+    if (said.includes(key)) return false;
+    this.run = { ...this.run, said: [...said, key] };
+    return true;
   }
 
   /** One short hint at a time, each once, when it is needed (coach.ts). */
@@ -1895,7 +1933,8 @@ export class GameScene extends Phaser.Scene {
       const onScreen = m.x > cam.scrollX + 30 && m.x < cam.scrollX + cam.width - 30;
       if (noticing && onScreen && !m.boss && !this.soldiers.has(m) && this.taunted.size === 0 && this.runTime > 6 && !this.ending && !this.talk.blocking) {
         this.taunted.add(m.kind);
-        if (Math.random() < TALKING.taunt) this.tauntMoment(m);
+        // Heard once in a world, never again when he comes back (Amin, 20 Oct).
+        if (Math.random() < TALKING.taunt && this.sayOnce(`taunt:${this.run.chapter}`)) this.tauntMoment(m);
       }
       if (has && !this.voiced.has(m)) {
         this.voiced.add(m);
