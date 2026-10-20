@@ -53,7 +53,7 @@ To test only some services: `PROVIDER_TEST_ONLY=groq,cloudflare npm run test:pro
 
 ## Putting it online
 
-Ready, not yet done: see `../DEPLOY.md`. The function runs on Cloudflare Pages through `../functions/api/make.ts`, at the same address as the game, and the built game finds it through `VITE_AI_URL=/api/make` in `../.env.production`. The keys become Pages secrets with the same names as in `.env.example`.
+Ready, not yet done: see `.../docs/deploy.md`. The function runs on Cloudflare Pages through `../functions/api/make.ts`, at the same address as the game, and the built game finds it through `VITE_AI_URL=/api/make` in `../.env.production`. The keys become Pages secrets with the same names as in `.env.example`.
 
 `wrangler.toml` and `npm run deploy` in this folder are for the other way, a separate Cloudflare Worker on its own address. That way also needs `ALLOWED_ORIGIN` set to the game's address, and the game's content policy (`public/_headers`) opened for the Worker's address.
 

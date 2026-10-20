@@ -646,7 +646,7 @@ export class GameScene extends Phaser.Scene {
     this.sfx.land();
   }
 
-  /** He earns XP; a new skill, when it comes, works at once (SKILLS.md). Returns the run with it. */
+  /** He earns XP; a new skill, when it comes, works at once (docs/skills.md). Returns the run with it. */
   private earn(xp: number, from: RunState = this.carried()): RunState {
     if (this.previewAt !== undefined) return from;
     const { run, skill } = gainXp(from, xp, this.level.seed, HEALTH.petals);

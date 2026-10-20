@@ -1,6 +1,6 @@
 @echo off
 rem Double-click to play Disposable Tricks. Keep this window open while you play; close it to stop the game.
-cd /d "%~dp0"
+cd /d "%~dp0.."
 title Disposable Tricks
 if not exist node_modules (
   echo Installing the game's parts. This happens only the first time...

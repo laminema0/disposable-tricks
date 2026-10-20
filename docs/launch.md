@@ -70,7 +70,7 @@ For the AI session: on Cloudflare Pages a function is a file in a `functions/` f
 
 ### What Amin does himself (after the move in section 4)
 
-Superseded on 19 October 2026 by `DEPLOY.md`, which deploys from this computer without the move and includes the AI function. The steps below are the GitHub way.
+Superseded on 19 October 2026 by `deploy.md`, which deploys from this computer without the move and includes the AI function. The steps below are the GitHub way.
 
 1. Make a free Cloudflare account at cloudflare.com.
 2. In the dashboard: Workers & Pages, Create, Pages, "Connect to Git". Allow access to the `disposable-tricks` repository only.

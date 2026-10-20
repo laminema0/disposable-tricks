@@ -1,11 +1,11 @@
 # Disposable Tricks: where we are
 
-Last updated: 13 October 2026, after Amin's first play-test (the maker and stealth were reworked; see BUILD_BRIEF.md section 10).
+Last updated: 13 October 2026, after Amin's first play-test (the maker and stealth were reworked; see build-brief.md section 10).
 
-**What "done" means is set by [WHAT_AMIN_WANTS.md](WHAT_AMIN_WANTS.md).** Where it differs from this list or from the brief, it wins.
+**What "done" means is set by [design-decisions.md](design-decisions.md).** Where it differs from this list or from the brief, it wins.
 
 This is the one list we track progress on. Every work session reads it first and updates it last.
-The full design is in [BUILD_BRIEF.md](BUILD_BRIEF.md) and on the [FigJam board](https://www.figma.com/board/N7rWnbbznoWuKkfgeve94S). Launch steps are in [LAUNCH.md](LAUNCH.md), AI key steps in [server/README.md](server/README.md).
+The full design is in [build-brief.md](build-brief.md) and on the [FigJam board](https://www.figma.com/board/N7rWnbbznoWuKkfgeve94S). Launch steps are in [launch.md](launch.md), AI key steps in [server/README.md](../server/README.md).
 
 Status words: **Done** = built and checked in the browser. **Partly** = some of it works, the rest is listed. **Not started**. **Waiting** = needs a decision or an action from Amin first.
 
@@ -29,7 +29,7 @@ A player makes a game in five steps by tapping or writing; a real AI (Groq, then
 |---|---|---|
 | A1 | Try the game on a phone held sideways (`npm run dev:phone`) | README.md |
 | A2 | Done on 13 Oct for Groq and Cloudflare (keys are in `server/.env`, used on this computer only) | server/README.md |
-| A3 | Create an empty `disposable-tricks` repository on GitHub and a free Cloudflare account | LAUNCH.md |
+| A3 | Create an empty `disposable-tricks` repository on GitHub and a free Cloudflare account | launch.md |
 
 ## Order of work (changed on 13 October)
 
@@ -236,7 +236,7 @@ Ten wishes, sent exactly as the game sends them, each script test-run in the loc
 | # | Task | Status | Notes |
 |---|---|---|---|
 | 4.1 | Hero drawn like "Hero version 5" on the board | Partly | Since 13 Oct his cape, body, legs, arm and sword are cut from the board's own drawing (art/hero-v5.svg). Seen on screen at 844x390: he stands about 28% of the screen height. Head, eye and flower are still simple circles. |
-| 4.8 | Visuals pass (WHAT_AMIN_WANTS.md section 5) | Done | See "The visuals pass", "Merged monsters and the boss", "The maker screens and the story", and GRAPHICS_LOOPS.md. |
+| 4.8 | Visuals pass (design-decisions.md section 5) | Done | See "The visuals pass", "Merged monsters and the boss", "The maker screens and the story", and notes/graphics-loops.md. |
 | 4.9 | AI writes game code for wishes the blocks cannot express ("tricks") | Done | Built on 13 Oct after Amin said yes. A wish the blocks cannot express is written as one small script against a short game API (src/trick/reference.ts), test-run, repaired up to twice, and played in a locked frame with no network and no access to the page. It travels in the share link and can be saved. Trial results are below. **Not yet played by anyone:** the preview's safety check refused playing the written games, so how they look and feel is unverified. |
 | 4.2 | Hero in colour for a happy mood, cape on or off | Done | |
 | 4.3 | Hero animation set: idle, run, jump, lie down, hide, strike, hurt | Partly | All exist as simple code motion, not drawn animation. |
@@ -250,7 +250,7 @@ Ten wishes, sent exactly as the game sends them, each script test-run in the loc
 | # | Task | Status | Notes |
 |---|---|---|---|
 | 5.1 | Try it on a real phone held sideways | Waiting | Action A1. |
-| 5.2 | Move the project into its own repository | Not started | Steps are in LAUNCH.md section 4. Nothing is committed anywhere yet. |
+| 5.2 | Move the project into its own repository | Not started | Steps are in launch.md section 4. Nothing is committed anywhere yet. |
 | 5.3 | Hosting on a free static host | Partly | Cloudflare Pages chosen and its config files are in place. Account and first deploy: action A3. |
 | 5.4 | "Turn your phone" screen and Add to Home Screen | Done | iPhones cannot lock rotation or go full screen from a web page, so the turn screen stays necessary there. |
 | 5.5 | Privacy page and 16+ label | Done | The page now says that choices and written wishes go to our server and on to an AI service, and that nothing is stored. Contact line still open (D7). |
@@ -262,7 +262,7 @@ Ten wishes, sent exactly as the game sends them, each script test-run in the loc
 | # | Question | Why it matters |
 |---|---|---|
 | D1 | Answered on 13 Oct: writing is in addition to the cards, at every step. | |
-| D9 | Answered on 13 Oct: the AI may compose silhouettes from simple shapes. Building blocks now; AI-written code later and undecided. | See BUILD_BRIEF.md section 11. |
+| D9 | Answered on 13 Oct: the AI may compose silhouettes from simple shapes. Building blocks now; AI-written code later and undecided. | See build-brief.md section 11. |
 | D10 | Is the crawl gesture right (drag down, then slide the same finger sideways)? | Needs A1. |
 | D2 | Answered on 13 Oct: at the end his head is cut off and buried with the flower. Open detail: does he do it himself, and does the flower grow from the spot? | Built on that reading. |
 | D4 | Answered on 13 Oct: music and real sounds come later. The stand-in sounds made in code stay for now. | |

@@ -18,7 +18,7 @@ describe('the endless run', () => {
     expect(planChapter(base, { ...run, stage: 'street', returnTo: { x: 900 } }).boss).toBe(false);
   });
 
-  it('gives a skill while playing when the XP reaches the next mark, chosen by the game (SKILLS.md)', () => {
+  it('gives a skill while playing when the XP reaches the next mark, chosen by the game (docs/skills.md)', () => {
     expect([1, 2, 3, 4].map(skillAt)).toEqual([4, 10, 18, 28]);
     let run = newRun(5);
     const first = gainXp(run, xpFor({ hits: 1 }), 3, 5);

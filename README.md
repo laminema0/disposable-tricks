@@ -1,30 +1,63 @@
 # Disposable Tricks
 
-The game maker described in [BUILD_BRIEF.md](BUILD_BRIEF.md). What is built and what is left is tracked in [PROGRESS.md](PROGRESS.md). Launch steps are in [LAUNCH.md](LAUNCH.md) and the AI key steps in [server/README.md](server/README.md).
+**A dark little world you change by writing to it.**
 
-Built so far: the player makes a game in five steps, by tapping cards or by writing what they want at any step; an AI proposes each step's cards from the answers so far and turns written wishes into scenery, monsters and weapons from our own library. The game is then played against five kinds of monsters with petals as hearts, won or lost, and shared with a link.
+A small hero with a flower on his head crosses dried-out lands. Light gives him away, monsters hunt him, and the living flowers he finds bring the world back to life. Before you play, you choose what he carries, and you can write anything you like ("a bazooka", "zombies", "a dragon"). An AI turns your words into the game.
 
-## How a game is made
+**▶ Play it on your phone, held sideways: [disposable-tricks.pages.dev](https://disposable-tricks.pages.dev)**
 
-1. Five steps: Mood, World, Monsters, Weapon, Twist. At each one, tap a card or write in the field under the cards.
-2. Each answer shapes the next step. From the second step on, the cards are proposed by the AI from what was chosen so far. If the AI does not answer within about two seconds, our own cards are shown instead (they also change with the mood).
-3. A written wish can answer several steps at once: "a town with tall buildings and a bow" fills World and Weapon. A line beside the question then says what was understood, for example "Buildings · Bow, shoots far", and names anything that could not be built.
-4. "Surprise me" fills all five. Then a title card, then the game.
-5. At the end of the road (or from "Menu"): play again, remix one choice, copy the share link, or start a new game.
+<table>
+  <tr>
+    <td><img src="docs/images/menu-weapon.jpg" alt="Choosing a weapon: four picture buttons, a line to write any weapon, and Surprise me"></td>
+    <td><img src="docs/images/taunt.jpg" alt="A tall stalker finds the hero and taunts him in a speech bubble"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/boss-talk.jpg" alt="The boss, The Thirst, speaks to the hero before the fight"></td>
+    <td><img src="docs/images/world-salt-sea.png" alt="The Salt Sea, a pale misty world with a lighthouse"></td>
+  </tr>
+</table>
 
-Described monsters, atmosphere and guns: at the Monsters step a player can describe a monster ("a tall three-eyed thing that floats"); at the Mood step the air ("a foggy green swamp"); at the Weapon step a weapon ("a gun"). A game can be kept with Save on its menu and found again under "Saved" on the first screen; it stays on the device and can be deleted there.
+## The game
 
-The first question is "What do you want to play?": the base adventure, five starter games of ours that play at once (Road, Flying, Space shooter, Puzzle, Catch), or anything the player writes. A written wish is always made into its own game: the AI takes the nearest starter (`src/trick/starters.ts`) and changes it.
+- **Your words make the game.** Pick one of four weapons, or write your own. Every game has all five of our monsters, and you can write in more. The AI builds what you wrote from our own art and rules, and checks its answer against your words. If the AI is unavailable, the game reads your words itself, so you always get something to play.
+- **Stealth first, the sword second.** Light exposes you. Monsters become suspicious before they attack. Every attack is warned and can be avoided without a weapon: hide, lie flat, jump or step aside. Each attack also leaves an opening.
+- **A story to finish.** Find seven of ten living flowers in each world, break stones, take detours through glowing gates, and plant the flowers at the end. A boss guards each world, calls its soldiers, and warns you of its brothers as it falls.
+- **Five worlds:** The Dry Desert, The Ash Forest, The Salt Sea, The Red Canyons and The Silent City. Each has its own colours, scenery, monsters, music and boss.
+- **Calm music that follows you.** Made in code as you play: it darkens when a monster notices you and gains a bell note with every flower you find.
+- **Made for phones:** touch controls, vibration on Android, add-to-home-screen. No sign-in, nothing collected, ages 16+.
 
-Wishes the blocks cannot express ("flying cars"): the AI writes the game as one small script. This takes a few seconds ("Writing your game…"). The script is test-run and then played in a locked frame (`public/trick-frame.html`) that has no network and cannot reach the page. If it cannot be made to work, the nearest game from the blocks is made instead. The API a script may use is in `src/trick/reference.ts`.
+## How it was made
 
-What the AI may do with the blocks: pick from our library, set a few numbers, and compose flat silhouettes from simple shapes (boxes, circles, triangles, lines) for monsters, scenery and weapons. That is data, not code: it is clamped, shrunk to fit and repaired like everything else. Scenery is up to three of buildings, houses, towers, ruins, trees, mountains, bridges and fences, each with an amount and a size. A weapon is a kind (melee, ranged, thrown, none), one of our nine shapes, a reach, a speed, a power and a name. It never writes code and never draws. Twist cards always keep our own words, because they state a rule of the game.
+Designed and directed by **Amin Ranjbar**; built with **Claude Code** as the AI engineer. Each step started with research, then a plan, then a measurement:
 
-The address bar always holds the share link of the game on screen. Opening such a link plays that exact game with no maker screen. Everything sits after the `#`, which browsers never send to a server. Nothing is stored. A written wish is never put in the link. While a game is being made, the choices so far and any written wish are sent to the AI server function (see [public/privacy.html](public/privacy.html)).
+| Step | What changed | Measured |
+|---|---|---|
+| Characters | Silhouette research (Limbo, Inside, Hollow Knight) led to five monsters redrawn around one language of light | |
+| Controls and feel | Strike on touch-down, flick to jump, dust and squash, forgiving ledges | Strike delay up to 200 ms → next frame |
+| Difficulty | Bot players with human reaction times played 60 roads each | Skilled-bot finish rate 63% → 87% |
+| AI reliability | An evaluation set of 57 written wishes, an answer checker and a fallback | 35 of 49 right → 57 of 57, none empty |
+| Launch | One Cloudflare project for the game and the AI | Download 413 KB → 380 KB (gzip) |
 
-Open the page with `?ai=off` to make everything locally with nothing sent, or `?ai=fake` to use canned answers instead of a real AI.
+The dated story is in [HISTORY.md](HISTORY.md), the decisions in [docs/design-decisions.md](docs/design-decisions.md), and the research behind each step in [docs/reports](docs/reports).
 
-## Run it
+<table>
+  <tr>
+    <td><img src="docs/images/title.jpg" alt="Title card: Disposable Tricks, one line, Play and Back"></td>
+    <td><img src="docs/images/pause.jpg" alt="Pause menu with picture buttons and music and sound sliders"></td>
+    <td><img src="docs/images/boss-soldiers.jpg" alt="The boss's soldiers rush the hero"></td>
+  </tr>
+</table>
+
+## Built with
+
+- **Game:** TypeScript, [Phaser 3](https://phaser.io), Vite. All art is drawn in code as silhouettes; all sound and music are made in code with the Web Audio API.
+- **AI:** a small server that asks Groq first, then Cloudflare Workers AI, repairs and checks every answer, and limits calls to stay within free plans.
+- **Hosting:** Cloudflare Pages, with the AI as a Pages Function on the same address.
+- **Tests:** 300+ Vitest tests, including bot playtests and the AI evaluation set.
+
+## Run it on your computer
+
+You need [Node.js](https://nodejs.org) 22 or later.
 
 ```bash
 npm install
@@ -34,55 +67,30 @@ npm install
 npm run dev
 ```
 
-Then open http://localhost:5183 in a browser.
+Then open http://localhost:5183. To try it on a phone on the same Wi-Fi, run `npm run dev:phone` and open the "Network" address it prints. On Windows you can also double-click `scripts/start-game.bat`.
 
-To try it on a phone on the same Wi-Fi, run `npm run dev:phone` and open the "Network" address it prints. Hold the phone sideways.
+The game works without any AI keys: it then reads written wishes itself. To use the real AI locally, copy `server/.env.example` to `server/.env` and add your keys ([server/README.md](server/README.md)).
 
-```bash
-npm test
-```
+| Command | What it does |
+|---|---|
+| `npm test` | Runs all tests |
+| `npm run build` | Type-checks and builds the site into `dist/` |
+| `npm run deploy` | Builds and publishes to Cloudflare Pages ([docs/deploy.md](docs/deploy.md)) |
 
-runs the unit tests. `npm run build` makes the static site in `dist/`.
+## What is where
 
-## Controls
+| Folder | Contents |
+|---|---|
+| `src/game` | The game: hero, monsters, worlds, light, story and dialogue |
+| `src/ui` | The menus around the game |
+| `src/ai` | Turning written wishes into the game, with the checker and the fallback |
+| `src/core` | Controls, music, sound and other shared pieces |
+| `server` | The AI server, which also runs as the Cloudflare function in `functions/` |
+| `tests` | Tests, including `tests/sim`, the bot players |
+| `docs` | Design decisions, progress, reports, research and deployment |
 
-| Touch | Keyboard | Action |
-|---|---|---|
-| Hold the right half | D or → | Go forward |
-| Hold the left half | A or ← | Go back |
-| Drag up | W, Space or ↑ | Jump |
-| Drag down and keep holding | S or ↓ | Lie down. At a rock, pillar or crate he crouches behind it. In a hide spot in low light this hides him. |
-| While lying, slide the same finger sideways | S with A or D | Crawl that way, slowly. Slide back to the middle to stop. A second finger held on one side also works. |
-| Quick tap | J or Enter | Use the weapon: strike, shoot or throw |
-| | Q | Show or hide the debug readout |
-| | M | Sound on or off |
+## Credits
 
-Add `?debug=1` before the `#` in the address to start with the debug readout on.
+Concept, design and direction: Amin Ranjbar. Code: written with Claude Code (Anthropic) under Amin's direction. Fonts: Newsreader and Instrument Sans (SIL Open Font License).
 
-## Where things are
-
-- `src/settings/schema.ts`: the settings file, one small object that fully describes a game (brief 5.2).
-- `src/settings/defaults.ts`: the default game, and what each mood brings (palette, lights, hero in colour).
-- `src/settings/validate.ts`: the validator. Anything invalid or missing is repaired with defaults (pure, tested).
-- `src/settings/share.ts`: share-link encoding and decoding (pure, tested).
-- `src/settings/options.ts`: the five steps, our own cards for each, and how a card's "patch" is read and applied (pure, tested).
-- `src/settings/title.ts`: the pre-made game names.
-- `src/ai/`: asks the server function for suggestions, and falls back to a local keyword match when there is no AI.
-- `server/`: the AI server function (router, cache, text filter, fake provider). See its own README.
-- `src/shell/`, `public/`: turn-your-phone screen, home-screen manifest and icons, privacy page.
-- `src/ui/`: the pick screen, title card, end card, and the flow between them (`app.ts`). Fonts are bundled, not loaded from the network.
-- `src/game/look.ts`: turns the six palette slots into every colour the game draws with (pure, tested).
-- `src/game/config.ts`: every number to tune (speed, jump, strike, light thresholds, touch thresholds).
-- `src/core/light.ts`: the light-level function (pure, tested).
-- `src/core/input.ts`: tap, hold and drag classification (pure, tested).
-- `src/core/sfx.ts`: the sounds (splash, step, landing, sword), made in code until real recordings exist.
-- `src/core/controls.ts`: connects fingers and keys to the game.
-- `src/game/level.ts`: the five chunk types and the seeded level builder. The settings decide which kinds of light appear and how many (pure, tested).
-- `src/game/creatures.ts`, `src/game/creatureView.ts`: described monsters as building blocks (pure, tested) and how they are drawn.
-- `src/game/recipeDraw.ts`: draws a silhouette composed from simple shapes.
-- `src/settings/shelf.ts`: "My games", kept on the device only (pure, tested).
-- `src/game/sight.ts`: where each monster looks, as a shape (pure, tested). The same shapes are drawn in the game.
-- `src/game/scenery.ts`, `src/game/sceneryView.ts`: where the scenery stands (pure) and how each kind is drawn.
-- `src/game/hero.ts`: the hero's movement and his placeholder drawing.
-- `src/game/textures.ts`: the flat white placeholder shapes, tinted at run time.
-- `src/game/GameScene.ts`: draws the level, runs the hero, camera and debug readout.
+© 2026 Amin Ranjbar. All rights reserved.

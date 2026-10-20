@@ -2,7 +2,7 @@
 
 Designed and directed by Amin Ranjbar. Built with Claude Code as the AI engineer. Every decision below was Amin's, made by playing each version and saying what had to change.
 
-The code was first saved in git on 20 October 2026, so this page keeps the history from before that. It is drawn from the dated notes in [WHAT_AMIN_WANTS.md](WHAT_AMIN_WANTS.md), [PROGRESS.md](PROGRESS.md) and the [reports](reports/).
+The code was first saved in git on 20 October 2026, so this page keeps the history from before that. It is drawn from the dated notes in [docs/design-decisions.md](docs/design-decisions.md), [docs/progress.md](docs/progress.md) and the [reports](docs/reports/).
 
 Play it: https://disposable-tricks.pages.dev
 
@@ -29,22 +29,22 @@ Play it: https://disposable-tricks.pages.dev
 
 Each step began with research, then a plan, then measurement.
 
-- **Characters and monsters:** a deep research pass on silhouette design (Limbo, Inside, Hollow Knight) led to the five monsters being redrawn. Each has one verb, a clear warning, a strike and an opening, all in one language of light. ([report](reports/Silhouette%20monster%20and%20hero%20design.md))
+- **Characters and monsters:** a deep research pass on silhouette design (Limbo, Inside, Hollow Knight) led to the five monsters being redrawn. Each has one verb, a clear warning, a strike and an opening, all in one language of light. ([report](docs/reports/Silhouette%20monster%20and%20hero%20design.md))
 - **Monster behaviour:**
   - monsters become suspicious before they attack;
   - every attack is warned and can be avoided without the sword;
   - bumping into a monster hurts;
   - close up, monsters find you within a few seconds.
 - **Weapons:** guns fire from lying down; every weapon but stones can be thrown, and one tap throws an empty weapon.
-- **Controls and feel:** ([report](reports/Controls%20and%20feel.md))
+- **Controls and feel:** ([report](docs/reports/Controls%20and%20feel.md))
   - the strike fires on touch-down;
   - flicks jump;
   - landings throw up dust;
   - hits push both bodies apart;
   - forgiving ledges;
   - phone vibration.
-- **Sound:** calm ambient music made in code. It darkens when monsters notice you, adds bell notes with each flower found, and resolves when the flowers are planted. Monsters got their own voices. ([report](reports/Sound%20and%20music.md))
-- **Difficulty:** bot players with human reaction times played 60 roads each. The skilled bot's finish rate rose from 63% to 87%. ([report](reports/Difficulty.md))
+- **Sound:** calm ambient music made in code. It darkens when monsters notice you, adds bell notes with each flower found, and resolves when the flowers are planted. Monsters got their own voices. ([report](docs/reports/Sound%20and%20music.md))
+- **Difficulty:** bot players with human reaction times played 60 roads each. The skilled bot's finish rate rose from 63% to 87%. ([report](docs/reports/Difficulty.md))
 - **Story and bosses:** monsters taunt and the hero answers. Every world ends in a boss that talks, calls its soldiers, and as it dies warns of its brothers.
 - **More to play:** five worlds (The Dry Desert, The Ash Forest, The Salt Sea, The Red Canyons, The Silent City), each with its own colours, scenery, monsters, music key and boss. Monsters return if you walk back for flowers.
 - **In parallel:**

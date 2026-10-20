@@ -1,5 +1,5 @@
 // Every tunable number of milestone 1 lives here.
-// The values come from BUILD_BRIEF.md sections 3.5 and 3.6 and are first guesses.
+// The values come from docs/build-brief.md sections 3.5 and 3.6 and are first guesses.
 
 /** The game is always this tall in game pixels. The width follows the screen shape. */
 export const VIEW_H = 400;

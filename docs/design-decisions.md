@@ -1,10 +1,12 @@
-# What Amin wants
+# Design decisions
+
+Every requirement and design decision for the game, dated and in order, kept close to the words they were given in. Later sections win over earlier ones.
 
 Written 13 October 2026 by going back through the whole brainstorm conversation.
-This is the list to build from. Where it disagrees with BUILD_BRIEF.md or PROGRESS.md, this file wins.
+This is the list to build from. Where it disagrees with build-brief.md or progress.md, this file wins.
 
 Every line is something Amin asked for, close to his own words. Status is what the game does today:
-**Built**, **Partly**, **Missing**. Statuses come from PROGRESS.md and from looking at the running game; brought up to date on 15 October.
+**Built**, **Partly**, **Missing**. Statuses come from progress.md and from looking at the running game; brought up to date on 15 October.
 
 ## 0. How to work on this
 
@@ -90,7 +92,7 @@ Seen in the running game on 13 October (a "Surprise me" game, ruins, calm):
 
 ### Status of section 5 on 15 October
 
-Items 1 to 9 are done (the graphics pass of 15 October went further: see GRAPHICS_LOOPS.md). Item 10, the maker screens, is built: the game being made stands behind the questions and changes with each choice. Item 11 is followed and checked at 568x320, 757x387, 844x390 and 1280x720.
+Items 1 to 9 are done (the graphics pass of 15 October went further: see notes/graphics-loops.md). Item 10, the maker screens, is built: the game being made stands behind the questions and changes with each choice. Item 11 is followed and checked at 568x320, 757x387, 844x390 and 1280x720.
 
 Still missing against his wishes:
 - Riding and driving inside the adventure (only in written games).
@@ -145,7 +147,7 @@ Decided with Amin on 17 Oct:
 - **Weapon charges**: 3 uses, one comes back every 8 seconds.
 - **Three quick taps throw the weapon** (blades). It kills nearly anything, then lies on the ground; no weapon until he picks it up.
 - **Flowers are rarer**: about one monster in three drops them, and fewer.
-- **No upgrade cards and no chapter titles**: skills come while playing from XP, chosen by the game; monsters grow stronger with every skill. Full list in SKILLS.md.
+- **No upgrade cards and no chapter titles**: skills come while playing from XP, chosen by the game; monsters grow stronger with every skill. Full list in skills.md.
 - **Water**: four kinds (pond, stream, puddles, marsh). Walking in water makes noise monsters hear; crawling is silent.
 - Shooting weapons stay available for players who ask for them.
 
@@ -178,7 +180,7 @@ Decided with Amin on 17 Oct:
 - **Every game has all our monsters**; the second question only offers to add the player's own ("zombies"), which are added, never replacing ours.
 - **Our own drawings of 37 monsters**; the AI is told their names and puts the closest one in a monster's name, so it is drawn with ours.
 - **The turn into a detour:** Amin wants the camera to turn with the character, as in a 3D game. Not possible in this flat 2D game (see the conversation); waiting for his choice.
-- **Ten rounds of improvement:** see ENHANCE_LOOPS.md.
+- **Ten rounds of improvement:** see notes/enhance-loops.md.
 
 ## The design pass, 19 October 2026 (from the research report "Silhouette monster and hero design")
 

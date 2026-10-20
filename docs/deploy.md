@@ -113,7 +113,7 @@ Buy the domain from any registrar. Then go to dash.cloudflare.com, **Workers & P
 
 ## Later: deploy from GitHub instead
 
-Once the project is in its own GitHub repository (see LAUNCH.md, section 4), Cloudflare can build it on every push. On the website: **Workers & Pages**, **Create**, **Pages**, **Connect to Git**. Choose the repository, set the build command to `npm run build` and the output folder to `dist`. The secrets from step 3 stay as they are. Until then, `npm run deploy` from this computer does the same job.
+Once the project is in its own GitHub repository (see launch.md, section 4), Cloudflare can build it on every push. On the website: **Workers & Pages**, **Create**, **Pages**, **Connect to Git**. Choose the repository, set the build command to `npm run build` and the output folder to `dist`. The secrets from step 3 stay as they are. Until then, `npm run deploy` from this computer does the same job.
 
 ## What is in the project for this
 

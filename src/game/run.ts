@@ -1,6 +1,6 @@
 // The endless run (WHAT_AMIN_WANTS, redesigns of 17 and 18 October): one road in stretches, each a little
 // harder than the last, until the last petal falls. Detours open inside archway gates and lead back to it.
-// Skills come while playing, chosen by the game, as he earns XP (SKILLS.md); every skill makes the monsters
+// Skills come while playing, chosen by the game, as he earns XP (docs/skills.md); every skill makes the monsters
 // a little stronger too. Pure: no game engine. The scene asks it what a stretch holds and what he has earned.
 
 import { landOf } from './lands';
@@ -44,7 +44,7 @@ export const SKILLS: Record<SkillKey, Skill> = {
 };
 export const UPGRADES = SKILLS;
 
-/** XP for a defeat (SKILLS.md). */
+/** XP for a defeat (docs/skills.md). */
 export const XP = { oneHit: 2, twoHits: 3, strong: 4, boss: 10, sneak: 1, detour: 3 };
 
 export type Stage = 'road' | 'street';

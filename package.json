@@ -1,7 +1,15 @@
 {
   "name": "disposable-tricks",
+  "version": "1.0.0",
+  "description": "A dark little mobile web game you change by writing to it. Designed and directed by Amin Ranjbar.",
+  "author": "Amin Ranjbar",
+  "homepage": "https://disposable-tricks.pages.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/laminema0/disposable-tricks.git"
+  },
+  "license": "UNLICENSED",
   "private": true,
-  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

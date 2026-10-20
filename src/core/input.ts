@@ -1,5 +1,5 @@
 // Touch classification. A pure function, no game engine, so it can be unit tested.
-// Rules from BUILD_BRIEF.md section 3.5.
+// Rules from docs/build-brief.md section 3.5.
 
 import { TOUCH } from '../game/config';
 

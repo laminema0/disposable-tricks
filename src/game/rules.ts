@@ -1,4 +1,4 @@
-// Game rules as pure functions. Numbers from BUILD_BRIEF.md section 3.6.
+// Game rules as pure functions. Numbers from docs/build-brief.md section 3.6.
 
 import { HEALTH, LIGHT, STRIKE, WATCHER } from './config';
 

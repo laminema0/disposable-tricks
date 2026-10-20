@@ -185,7 +185,7 @@ A level is a row of pre-made chunks (flat ground, gap, pillar hall, grass field,
 ### 5.8 Suggested folders
 ```
 disposable-tricks/
-  BUILD_BRIEF.md
+  build-brief.md
   src/
     core/        input, physics, camera, light, health, particles
     game/        hero, enemies, level chunks, rules
@@ -330,4 +330,4 @@ Amin: "The users who want to have flying cars in the game: they have to wait for
   - The trick API now has our art: the hero with his flower and his vehicles, the five monsters, flowers, the flower burst, lights and darkness, petals as lives.
   - The test before play also checks that there is a game: input must change something, and something must be scored, won or lost.
   - Code is written by Groq's larger free model first.
-- **Second trial, 13 Oct:** 12 of 12 wishes worked, 11 first time. See PROGRESS.md.
+- **Second trial, 13 Oct:** 12 of 12 wishes worked, 11 first time. See progress.md.
