@@ -164,12 +164,19 @@ describe('the boss', () => {
     world.strike(zone, true, 1, 1);
     expect(boss.alive).toBe(true);
     expect(boss.hitsLeft).toBe(bossOf(1).hits - 2);
-    for (let id = 2; boss.alive && id < 20; id++) world.strike(zone, false, id, 1);
+    // A strike right after another does nothing.
+    world.strike(zone, false, 2, 1);
+    expect(boss.hitsLeft).toBe(bossOf(1).hits - 2);
+    for (let id = 3; boss.alive && id < 20; id++) {
+      run(world, 1, hero({ x: 600, lying: true, hidden: true }));
+      world.strike(zone, false, id, 1);
+    }
     expect(boss.alive).toBe(false);
     const again = fight();
-    again.world.strike(zone, false, 1, 1);
-    again.world.strike(zone, false, 2, 1);
-    again.world.strike(zone, false, 3, 1);
+    for (let id = 1; id <= 3; id++) {
+      again.world.strike(zone, false, id, 1);
+      if (again.boss.boss) again.boss.boss.guard = 0;
+    }
     again.world.step(1 / 60, hero({ x: 800 }));
     expect(again.boss.boss?.phase).toBe(1);
   });

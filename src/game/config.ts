@@ -182,6 +182,11 @@ export const BOSS = {
   gust: 520,
   /** Shots in a fan spread this far apart (radians). */
   fan: 0.22,
+  /**
+   * Seconds after a strike lands in which the next does nothing (21 Oct): standing at its stem and striking fast felled
+   * any boss in about four seconds. Now a fight with a weapon is a few well-timed strikes, best while its eye is shut.
+   */
+  guard: 0.9,
 };
 /** The share of a level's monsters that are merges, by difficulty 1 to 3. They stand in the later part of the road. */
 export const MERGE_SHARE = [0, 0.2, 0.4, 0.55];

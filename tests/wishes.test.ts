@@ -134,3 +134,24 @@ describe('the AI’s answer, checked against the words', () => {
     expect(parts.map((part) => part.step)).toEqual(['weapon']);
   });
 });
+
+describe('a describing word describes what follows it (21 Oct: "a giant snail" came back as our troll)', () => {
+  const full = (text: string) => beastsIn(text).map((beast) => beast.key);
+  it('reads the thing, not the word before it', () => {
+    expect(full('a giant snail')).toEqual([]);
+    expect(full('a giant robot')).toEqual(['beast-robot']);
+    expect(full('a dark wolf')).toEqual(['beast-wolf']);
+  });
+  it('a describing word on its own is still the thing', () => {
+    expect(full('a giant')).toEqual(['beast-troll']);
+    expect(full('a giant with a club')).toEqual(['beast-troll']);
+    expect(full('giants and wolves')).toEqual(['beast-troll', 'beast-wolf']);
+  });
+});
+
+describe('without the AI, a monster of your own keeps your words (21 Oct: "a giant snail" became a "Tall thing")', () => {
+  it('names it as written', () => {
+    expect(readStepWish('monsters', 'a giant snail')?.creatures?.[0]?.name).toBe('Giant snail');
+    expect(readStepWish('monsters', 'a tall thing')?.creatures?.[0]?.name).toBe('Tall thing');
+  });
+});

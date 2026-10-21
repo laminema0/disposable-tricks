@@ -1077,6 +1077,11 @@ export const BEASTS: Beast[] = [
  */
 const DESCRIBING = /^(giant|huge|big|large|massive|enormous|small|little|tiny|evil|dark|scary|angry|mad|wild|undead|ghostly|shadow|black|white|red|green|blue|golden|ancient|old|young|baby|mega|super|monster|monstrous|cursed|demonic|flying|fire|ice|stone|rock|metal|iron|robot|zombie|vampire|killer|mutant|mutated|two|three|four|many|headed|legged|winged|eyed)$/;
 
+/** True for a word that only describes ("giant", "dark"), when it stands before what it describes. */
+export function isDescribing(word: string): boolean {
+  return DESCRIBING.test(word.toLowerCase());
+}
+
 function headOf(name: string): string {
   const words = name
     .toLowerCase()

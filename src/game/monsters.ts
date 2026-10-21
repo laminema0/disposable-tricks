@@ -261,6 +261,8 @@ export interface BossState {
   healIn: number;
   /** While its soldiers fight him it waits, eye shut (the boss's dialogue, 19 Oct). */
   waiting?: boolean;
+  /** Seconds until a strike can hurt it again. */
+  guard: number;
 }
 
 export interface Shot {
@@ -413,7 +415,7 @@ export class MonsterWorld {
         name: spawn.design?.name,
         boss:
           spawn.design?.boss && spawn.design.profile
-            ? { profile: spawn.design.profile, mouth: spawn.design.mouth ?? { ahead: 0, up: spec.height * 0.8 }, phase: 0, open: true, cycle: 0, found: false, lost: 0, daze: 0, spitIn: 1, rainIn: 1.5, stompIn: 2, gustIn: 2, healIn: spawn.design.profile.heal / 2 }
+            ? { profile: spawn.design.profile, mouth: spawn.design.mouth ?? { ahead: 0, up: spec.height * 0.8 }, phase: 0, open: true, cycle: 0, found: false, lost: 0, daze: 0, spitIn: 1, rainIn: 1.5, stompIn: 2, gustIn: 2, healIn: spawn.design.profile.heal / 2, guard: 0 }
             : undefined,
         spitIn: 1,
         swipeIn: 0,
@@ -557,6 +559,9 @@ export class MonsterWorld {
     for (const m of this.monsters) {
       if (!m.alive || m.lastStrike === strikeId || !overlap(monsterBox(m), zone)) continue;
       m.lastStrike = strikeId;
+      // Just struck, the boss shrugs off the next blow for a moment.
+      if (m.boss && m.boss.guard > 0) continue;
+      if (m.boss) m.boss.guard = BOSS.guard;
       // The boss cannot be felled in one blow: a strike from hiding counts double.
       // While it recovers from an attack its weak point is open: a strike then counts as one from hiding.
       const open = sneak || m.state === 'rest';
@@ -851,6 +856,7 @@ export class MonsterWorld {
     const boss = m.boss;
     if (!boss) return;
     m.phase += dt;
+    boss.guard = Math.max(0, boss.guard - dt);
     if (boss.waiting) {
       this.gazeOn(m, false, dt, out);
       m.sees = false;

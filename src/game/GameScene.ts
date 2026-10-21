@@ -49,7 +49,7 @@ const FADE_ONLY = true;
 const STONE = { half: 38, height: 44 };
 
 /** The finale: its day sky, sun and warm light, how many flowers open, and seconds until the end card. */
-const FINALE = { skyTop: '#5d9fd6', sky: '#9ccdea', horizon: '#ffe0a3', sun: 0xffd76a, sunGlow: 0xffc65a, warm: 0xffd9a0, green: 0x6a994e, flowers: 54, time: 8.5 };
+const FINALE = { skyTop: '#5d9fd6', sky: '#9ccdea', horizon: '#ffe0a3', sun: 0xffc23d, sunGlow: 0xffb347, warm: 0xffd9a0, green: 0x6a994e, flowers: 54, time: 8.5 };
 
 const TALKING = { taunt: 0.5, answer: 0.4, line: 1.3 };
 
@@ -1582,9 +1582,9 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({ targets: [this.moon, this.moonHalo], alpha: 0, duration: 2200, ease: 'Sine.easeIn' });
     // The sun rises behind the hills.
     const sunX = w * 0.3;
-    const halo = this.add.image(sunX, GROUND_Y + 60, 'glow').setDisplaySize(460, 460).setTint(FINALE.sunGlow).setAlpha(0.75).setBlendMode(add).setScrollFactor(0).setDepth(DEPTH.moon + 0.1);
+    const halo = this.add.image(sunX, GROUND_Y + 60, 'glow').setDisplaySize(300, 300).setTint(FINALE.sunGlow).setAlpha(0.4).setBlendMode(add).setScrollFactor(0).setDepth(DEPTH.moon + 0.1);
     const sun = this.add.circle(sunX, GROUND_Y + 60, 34, FINALE.sun, 1).setScrollFactor(0).setDepth(DEPTH.moon + 0.2);
-    this.tweens.add({ targets: [sun, halo], y: 96, duration: 5200, delay: 900, ease: 'Sine.easeOut' });
+    this.tweens.add({ targets: [sun, halo], y: 62, duration: 5200, delay: 900, ease: 'Sine.easeOut' });
     // Warm light over everything.
     const wash = this.add.rectangle(0, 0, MAX_VIEW_W + 40, VIEW_H + 40, FINALE.warm, 1).setOrigin(0).setScrollFactor(0).setBlendMode(add).setAlpha(0).setDepth(DEPTH.front + 0.5);
     this.tweens.add({ targets: wash, alpha: 0.16, duration: 4000, delay: 1200, ease: 'Sine.easeInOut' });

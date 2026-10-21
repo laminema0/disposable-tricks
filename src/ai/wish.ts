@@ -4,7 +4,7 @@
 // steps the wish says nothing about are left out.
 // Pure: no browser, no server.
 
-import { BEASTS, type Beast } from '../game/beasts';
+import { BEASTS, isDescribing, type Beast } from '../game/beasts';
 import { WEAPON_PRESETS } from '../settings/defaults';
 import type { Patch, Step } from '../settings/options';
 import { STEPS } from '../settings/options';
@@ -267,7 +267,10 @@ export function beastsIn(text: string, max = 2): Beast[] {
     if (!kept.some((other) => one.start < other.end && other.start < one.end)) kept.push(one);
   }
   kept.sort((a, b) => a.start - b.start);
-  const heads = kept.filter((one) => !kept.some((next) => next.start === one.end + 1));
+  // A describing word before any other word describes it (21 Oct: "a giant snail" came back as our troll):
+  // only when it stands alone, or before "and", "with" and the like, is it the thing itself ("a giant").
+  const describes = (one: Found) => isDescribing(wish.slice(one.start, one.end)) && /^ (?!(and|or|with|in|on|at|of|from|to|that|who|which|for|but|then|plus)\b)[a-z]/.test(wish.slice(one.end));
+  const heads = kept.filter((one) => !kept.some((next) => next.start === one.end + 1) && !describes(one));
   const beasts: Beast[] = [];
   for (const one of heads) if (!beasts.includes(one.beast)) beasts.push(one.beast);
   return beasts.slice(0, max);
@@ -355,7 +358,10 @@ function readMonsters(wishIn: string, here: boolean): Patch | undefined {
   // so that "tall buildings" does not grow legs. A named monster is taken as named.
   const described = describeCreature(wish, here && !patch.enemies);
   if (described) {
-    patch.creatures = [described];
+    // A monster of the player's own keeps the player's words: "a giant snail" is a Giant snail, not a "Tall thing"
+    // (21 Oct, seen when the AI was busy and this reading stood in for it).
+    const own = here && / thing$/i.test(described.name) ? thingNamed(wishIn) : undefined;
+    patch.creatures = [own ? { ...described, name: own } : described];
     patch.enemies ??= [];
   }
   if (!patch.enemies) return undefined;

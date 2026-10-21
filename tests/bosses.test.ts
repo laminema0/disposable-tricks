@@ -43,7 +43,7 @@ describe('ten levels', () => {
   it('every level is harder than the one before', () => {
     for (let c = 2; c <= 10; c++) {
       const [was, now] = [levelOf(c - 1), levelOf(c)];
-      expect(now.monsters, `world ${c}`).toBeGreaterThan(was.monsters);
+      expect(now.monsters, `world ${c}`).toBeGreaterThanOrEqual(was.monsters);
       expect(now.pace).toBeGreaterThan(was.pace);
       expect(now.sight).toBeGreaterThan(was.sight);
       expect(now.screens).toBeGreaterThanOrEqual(was.screens);

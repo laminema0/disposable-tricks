@@ -162,17 +162,20 @@ export interface LevelPlan {
   soldiers: number;
 }
 
+// 21 Oct, from the bot players (tests/sim): the number of monsters is what makes a road hard, far more than
+// their speed, sight or toughness. At 15 in world 10 even a skilled bot never finished; now the count grows
+// slowly and the rest carries the rise. Bots never hide, so a person does better than these.
 export const LEVELS: LevelPlan[] = [
   { monsters: 5, screens: 8, difficulty: 1, toughness: 0, pace: 1, sight: 1, dark: 0, soldiers: 2 },
-  { monsters: 6, screens: 8, difficulty: 1, toughness: 0, pace: 1.04, sight: 1.03, dark: 0.02, soldiers: 3 },
-  { monsters: 7, screens: 9, difficulty: 2, toughness: 0, pace: 1.08, sight: 1.06, dark: 0.03, soldiers: 3 },
-  { monsters: 8, screens: 9, difficulty: 2, toughness: 1, pace: 1.1, sight: 1.08, dark: 0.04, soldiers: 4 },
-  { monsters: 9, screens: 10, difficulty: 2, toughness: 1, pace: 1.13, sight: 1.1, dark: 0.06, soldiers: 4 },
-  { monsters: 10, screens: 10, difficulty: 3, toughness: 1, pace: 1.16, sight: 1.12, dark: 0.07, soldiers: 5 },
-  { monsters: 11, screens: 10, difficulty: 3, toughness: 1, pace: 1.19, sight: 1.14, dark: 0.08, soldiers: 5 },
-  { monsters: 12, screens: 11, difficulty: 3, toughness: 2, pace: 1.22, sight: 1.16, dark: 0.09, soldiers: 6 },
-  { monsters: 13, screens: 11, difficulty: 3, toughness: 2, pace: 1.25, sight: 1.18, dark: 0.1, soldiers: 6 },
-  { monsters: 15, screens: 12, difficulty: 3, toughness: 2, pace: 1.28, sight: 1.2, dark: 0.11, soldiers: 7 },
+  { monsters: 5, screens: 8, difficulty: 1, toughness: 0, pace: 1.04, sight: 1.03, dark: 0.02, soldiers: 3 },
+  { monsters: 6, screens: 9, difficulty: 2, toughness: 0, pace: 1.08, sight: 1.06, dark: 0.03, soldiers: 3 },
+  { monsters: 6, screens: 9, difficulty: 2, toughness: 0, pace: 1.1, sight: 1.08, dark: 0.04, soldiers: 4 },
+  { monsters: 7, screens: 10, difficulty: 2, toughness: 1, pace: 1.13, sight: 1.1, dark: 0.06, soldiers: 4 },
+  { monsters: 7, screens: 10, difficulty: 3, toughness: 1, pace: 1.16, sight: 1.12, dark: 0.07, soldiers: 5 },
+  { monsters: 8, screens: 10, difficulty: 3, toughness: 1, pace: 1.19, sight: 1.14, dark: 0.08, soldiers: 5 },
+  { monsters: 8, screens: 11, difficulty: 3, toughness: 1, pace: 1.22, sight: 1.16, dark: 0.09, soldiers: 6 },
+  { monsters: 9, screens: 11, difficulty: 3, toughness: 2, pace: 1.25, sight: 1.18, dark: 0.1, soldiers: 6 },
+  { monsters: 10, screens: 12, difficulty: 3, toughness: 2, pace: 1.28, sight: 1.2, dark: 0.11, soldiers: 7 },
 ];
 
 /** How hard this world is. */
@@ -251,7 +254,7 @@ export function planChapter(base: Settings, run: RunState): ChapterPlan {
   const palette = land.palette ?? base.palette;
   const settings: Settings = { ...base, difficulty, lightDensity, weapon, scenery, palette };
   const seed = (base.seed + c * 7919 + (street ? 104729 + (run.returnTo?.x ?? 0) : 0)) >>> 0;
-  const extra = Math.floor(t / 2);
+  const extra = Math.floor(t / 3);
   return {
     settings,
     seed,

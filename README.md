@@ -17,12 +17,23 @@ A small hero with a flower on his head crosses dried-out lands. Light gives him 
   </tr>
 </table>
 
+<img src="docs/images/ten-bosses.png" alt="The ten bosses side by side, each a different silhouette with glowing eyes">
+
+<table>
+  <tr>
+    <td><img src="docs/images/ash-queen.png" alt="The Ash Queen lights the hero with her gaze and fans embers at him"></td>
+    <td><img src="docs/images/finale.png" alt="The finale: day sky, the sun up, green grass and flowers, The world is green again"></td>
+  </tr>
+</table>
+
 ## The game
 
 - **Your words make the game.** Pick one of four weapons, or write your own. Every game has all five of our monsters, and you can write in more. The AI builds what you wrote from our own art and rules, and checks its answer against your words. If the AI is unavailable, the game reads your words itself, so you always get something to play.
 - **Stealth first, the sword second.** Light exposes you. Monsters become suspicious before they attack. Every attack is warned and can be avoided without a weapon: hide, lie flat, jump or step aside. Each attack also leaves an opening.
-- **A story to finish.** Find seven of ten living flowers in each world, break stones, take detours through glowing gates, and plant the flowers at the end. A boss guards each world, calls its soldiers, and warns you of its brothers as it falls.
-- **Five worlds:** The Dry Desert, The Ash Forest, The Salt Sea, The Red Canyons and The Silent City. Each has its own colours, scenery, monsters, music and boss.
+- **A story to finish.** Find seven of ten living flowers in each world, break stones, take detours through glowing gates, and plant the flowers at the end. Beat the tenth boss and the whole world turns green: the sun comes up and flowers open everywhere.
+- **Ten worlds, each harder than the last,** from the Dry Desert to the Dry Heart, each with its own colours, scenery and monsters.
+- **Ten bosses, ten characters.** Each has its own body, its own words and its own way of fighting: the Ash Queen fans embers, the Salt King rains salt, the Dust Twins vanish and rise in front of you, the Hollow Giant stamps waves you must jump, the Storm Crow blows you back. Each names the next as it falls.
+- **Fall, and try that world again.** Losing every petal takes you back to the start of the world you were in, with the skills you had.
 - **Calm music that follows you.** Made in code as you play: it darkens when a monster notices you and gains a bell note with every flower you find.
 - **Made for phones:** touch controls, vibration on Android, add-to-home-screen. No sign-in, nothing collected, ages 16+.
 
@@ -53,7 +64,7 @@ The dated story is in [HISTORY.md](HISTORY.md), the decisions in [docs/design-de
 - **Game:** TypeScript, [Phaser 3](https://phaser.io), Vite. All art is drawn in code as silhouettes; all sound and music are made in code with the Web Audio API.
 - **AI:** a small server that asks Groq first, then Cloudflare Workers AI, repairs and checks every answer, and limits calls to stay within free plans.
 - **Hosting:** Cloudflare Pages, with the AI as a Pages Function on the same address.
-- **Tests:** 300+ Vitest tests, including bot playtests and the AI evaluation set.
+- **Tests:** 350 Vitest tests, including bot playtests, every boss's moves, and the AI evaluation set.
 
 ## Run it on your computer
 
